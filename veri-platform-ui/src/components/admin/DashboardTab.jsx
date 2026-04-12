@@ -150,20 +150,14 @@ export default function DashboardTab({ dashboardStats, api }) {
     activeForms,
     expiredForms,
     pendingForms,
-    totalAssignments,
     completedAssignments,
     pendingAssignments,
     completionRate,
     dailySubmissions,
     topForms,
     submissionsByStatus,
-    submissionsByDate,
-    formStatusBreakdown,
     userPerformance,
   } = dashboardStats;
-
-  // eslint-disable-next-line no-unused-vars
-  const _unusedStats = { totalAssignments, completedAssignments, pendingAssignments, completionRate, submissionsByDate, formStatusBreakdown, userPerformance };
 
   const statCards = [
     {

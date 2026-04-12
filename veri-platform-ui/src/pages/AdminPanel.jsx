@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import SortableItem from '../components/SortableItem';
@@ -100,29 +100,31 @@ export default function AdminPanel() {
 
   const swalOpts = { background: '#1e2330', color: '#f0f2f8', showCancelButton: true };
 
-/* ── Fetchers (Veri Çekiciler) ── */
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try { const r = await api.get('/Form/templates'); setFormTemplates(r.data); }
     catch { toast.error('Formlar yüklenemedi.'); }
-  };
-  const fetchStats = async () => {
+  }, [api]);
+
+  const fetchStats = useCallback(async () => {
     try { const r = await api.get('/Form/stats'); setDashboardStats(r.data); }
     catch { toast.error('İstatistikler çekilemedi.'); }
-  };
-  const fetchQuestions = async () => {
+  }, [api]);
+
+  const fetchQuestions = useCallback(async () => {
     if(!selectedForm) return;
     try { const r = await api.get(`/Form/templates/${selectedForm.id}/questions`); setQuestions(r.data.sort((a,b)=>a.order-b.order)); }
     catch { toast.error('Sorular yüklenemedi.'); }
-  };
-  const fetchSubmissions = async () => {
+  }, [api, selectedForm]);
+
+  const fetchSubmissions = useCallback(async () => {
     if(!selectedForm) return;
     try { const r = await api.get(`/Form/templates/${selectedForm.id}/submissions`); setSubmissions(r.data); }
     catch { toast.error('Yanıtlar çekilemedi.'); }
-  };
+  }, [api, selectedForm]);
 
-  useEffect(() => { fetchTemplates(); }, []);
-  useEffect(() => { if (selectedForm) { fetchQuestions(); fetchSubmissions(); } }, [selectedForm]);
-  useEffect(() => { if (activeTab === 'dashboard') fetchStats(); }, [activeTab]);
+  useEffect(() => { fetchTemplates(); }, [fetchTemplates]);
+  useEffect(() => { if (selectedForm) { fetchQuestions(); fetchSubmissions(); } }, [selectedForm, fetchQuestions, fetchSubmissions]);
+  useEffect(() => { if (activeTab === 'dashboard') fetchStats(); }, [activeTab, fetchStats]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

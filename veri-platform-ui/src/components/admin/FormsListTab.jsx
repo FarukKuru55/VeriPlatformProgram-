@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import { FaClipboard, FaPencilAlt } from 'react-icons/fa';
+import { FaClipboard, FaPencilAlt, FaTrash, FaPlus, FaCheck, FaClock, FaUser, FaUsers, FaFileAlt, FaSearch } from 'react-icons/fa';
 import {
   IconPlus,
   IconUsers,
@@ -9,6 +9,9 @@ import {
   IconRepeat,
   IconFileText,
   IconSearch,
+  IconCalendar,
+  IconArrowRight,
+  IconSettings,
 } from '@tabler/icons-react';
 
 const Ico = {
@@ -19,6 +22,9 @@ const Ico = {
   repeat: <IconRepeat size={14} stroke={2} />,
   doc: <IconFileText size={20} stroke={1.8} />,
   search: <IconSearch size={16} stroke={2} />,
+  calendar: <IconCalendar size={14} stroke={2} />,
+  arrow: <IconArrowRight size={14} stroke={2} />,
+  settings: <IconSettings size={14} stroke={2} />,
 };
 
 export default function FormsListTab({
@@ -37,14 +43,15 @@ export default function FormsListTab({
   const [targetForm, setTargetForm] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const formStatus = (form) => {
     const now = new Date();
     const s = form.startDate ? new Date(form.startDate) : null;
     const e = form.endDate ? new Date(form.endDate) : null;
-    if (s && now < s) return { label: 'BEKLEMEDE', cls: 'pending' };
-    if (e && now > e) return { label: 'SONA ERDİ', cls: 'expired' };
-    return { label: 'AKTİF', cls: 'active' };
+    if (s && now < s) return { label: 'BEKLEMEDE', cls: 'pending', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' };
+    if (e && now > e) return { label: 'SONA ERDİ', cls: 'expired', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' };
+    return { label: 'AKTİF', cls: 'active', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' };
   };
 
   const openAssignModal = async (form) => {
@@ -80,69 +87,180 @@ export default function FormsListTab({
     );
 
   const recurrenceLabel = (type) =>
-    ({ Daily: 'Günlük Tekrar', Weekly: 'Haftalık Tekrar', Monthly: 'Aylık Tekrar' }[type] ?? 'Periyodik');
+    ({ Daily: 'Günlük', Weekly: 'Haftalık', Monthly: 'Aylık' }[type] ?? 'Periyodik');
+
+  const filteredForms = formTemplates.filter(f =>
+    !searchQuery || f.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-title">Form Yönetimi</div>
-        <div className="page-desc">
+      <div style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.02em', marginBottom: '4px' }}>
+          Form Yönetimi
+        </h1>
+        <p style={{ fontSize: '14px', color: 'var(--text-3)' }}>
           Personel atamaları için form oluşturun ve yönetin.
-        </div>
+        </p>
       </div>
 
-      <div className="create-box">
-        <div className="create-box-row">
+      <div style={{
+        background: 'var(--surface)',
+        borderRadius: 'var(--radius-xl)',
+        border: '1px solid var(--border)',
+        padding: '24px',
+        marginBottom: '24px',
+        boxShadow: 'var(--shadow-sm)'
+      }}>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
           <input
-            className="text-input"
-            style={{ flex: 1 }}
             type="text"
             placeholder="Form adı girin (Örn: Aylık Performans Değerlendirmesi)"
             value={newFormTitle}
             onChange={(e) => setNewFormTitle(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreateTemplate()}
+            style={{
+              flex: 1,
+              padding: '12px 16px',
+              border: '1px solid var(--border-2)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '14px',
+              outline: 'none',
+              transition: 'all var(--transition)'
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = 'var(--accent)';
+              e.target.style.boxShadow = '0 0 0 3px var(--accent-soft)';
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = 'var(--border-2)';
+              e.target.style.boxShadow = 'none';
+            }}
           />
-          <button className="primary-btn" onClick={handleCreateTemplate}>
-            {Ico.plus} Yeni Form Oluştur
+          <button
+            onClick={handleCreateTemplate}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '12px 20px',
+              background: 'var(--primary)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.1)',
+              transition: 'all var(--transition)'
+            }}
+          >
+            <FaPlus size={14} />
+            Yeni Form Oluştur
           </button>
         </div>
 
-        <div className="create-box-meta">
+        <div style={{
+          display: 'flex',
+          gap: '16px',
+          alignItems: 'flex-end',
+          flexWrap: 'wrap'
+        }}>
           <div>
-            <span className="field-label">Başlangıç Tarihi</span>
+            <label style={{
+              display: 'block',
+              fontSize: '11px',
+              fontWeight: 600,
+              color: 'var(--text-3)',
+              marginBottom: '6px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Başlangıç Tarihi
+            </label>
             <input
-              className="text-input"
               type="datetime-local"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
+              style={{
+                padding: '10px 14px',
+                border: '1px solid var(--border-2)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '13px',
+                outline: 'none',
+                background: 'var(--surface)'
+              }}
             />
           </div>
           <div>
-            <span className="field-label">Bitiş Tarihi</span>
+            <label style={{
+              display: 'block',
+              fontSize: '11px',
+              fontWeight: 600,
+              color: 'var(--text-3)',
+              marginBottom: '6px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Bitiş Tarihi
+            </label>
             <input
-              className="text-input"
               type="datetime-local"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
+              style={{
+                padding: '10px 14px',
+                border: '1px solid var(--border-2)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '13px',
+                outline: 'none',
+                background: 'var(--surface)'
+              }}
             />
           </div>
-          <div className="toggle-row">
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '10px 16px',
+            background: isRecurring ? 'rgba(99, 102, 241, 0.05)' : 'var(--surface-2)',
+            borderRadius: 'var(--radius-md)',
+            border: `1px solid ${isRecurring ? 'rgba(99, 102, 241, 0.2)' : 'var(--border)'}`,
+            cursor: 'pointer',
+            transition: 'all var(--transition)'
+          }}
+          onClick={() => setIsRecurring(!isRecurring)}
+          >
             <input
-              className="toggle-check"
               type="checkbox"
-              id="rec"
               checked={isRecurring}
               onChange={(e) => setIsRecurring(e.target.checked)}
+              style={{ width: '16px', height: '16px', accentColor: '#6366f1' }}
             />
-            <label className="toggle-label" htmlFor="rec">
-              {Ico.repeat} Periyodik Form
-            </label>
+            <span style={{
+              fontSize: '13px',
+              fontWeight: 600,
+              color: isRecurring ? '#6366f1' : 'var(--text-2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <IconRepeat size={14} />
+              Periyodik Form
+            </span>
             {isRecurring && (
               <select
-                className="text-input"
-                style={{ width: 'auto', padding: '8px 12px' }}
                 value={recurrenceType}
                 onChange={(e) => setRecurrenceType(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  padding: '6px 10px',
+                  border: '1px solid var(--border-2)',
+                  borderRadius: 'var(--radius)',
+                  fontSize: '12px',
+                  background: 'var(--surface)',
+                  outline: 'none'
+                }}
               >
                 <option value="Daily">Günlük</option>
                 <option value="Weekly">Haftalık</option>
@@ -153,102 +271,258 @@ export default function FormsListTab({
         </div>
       </div>
 
-      <div className="forms-grid">
-        {formTemplates.map((form) => {
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '16px'
+      }}>
+        <div style={{
+          fontSize: '14px',
+          color: 'var(--text-3)'
+        }}>
+          <span style={{ fontWeight: 600, color: 'var(--text-1)' }}>{filteredForms.length}</span> form bulundu
+        </div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          background: 'var(--surface)',
+          borderRadius: 'var(--radius-md)',
+          padding: '8px 14px',
+          border: '1px solid var(--border)',
+          width: '240px'
+        }}>
+          <FaSearch size={14} color="var(--text-3)" />
+          <input
+            type="text"
+            placeholder="Form ara..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              outline: 'none',
+              fontSize: '13px',
+              color: 'var(--text-1)',
+              width: '100%'
+            }}
+          />
+        </div>
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+        gap: '16px'
+      }}>
+        {filteredForms.map((form) => {
           const st = formStatus(form);
           return (
             <div
-              className="form-card"
               key={form.id}
+              style={{
+                background: 'var(--surface)',
+                borderRadius: 'var(--radius-xl)',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-sm)',
+                overflow: 'hidden',
+                cursor: 'pointer',
+                transition: 'all var(--transition)'
+              }}
               onClick={() => { setSelectedForm(form); setActiveTab('builder'); }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                e.currentTarget.style.borderColor = 'var(--border-2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                e.currentTarget.style.borderColor = 'var(--border)';
+              }}
             >
-              <div className="form-card-top">
-                <div className="form-card-icon">{Ico.doc}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className={`status-badge ${st.cls}`}>{st.label}</span>
+              <div style={{
+                padding: '20px',
+                borderBottom: '1px solid var(--border)',
+                background: 'linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)'
+                    }}>
+                      <IconFileText size={20} />
+                    </div>
+                    <div>
+                      <div style={{
+                        fontSize: '15px',
+                        fontWeight: 700,
+                        color: 'var(--text-1)',
+                        marginBottom: '2px',
+                        letterSpacing: '-0.01em'
+                      }}>
+                        {form.title}
+                      </div>
+                      <div style={{
+                        fontSize: '11px',
+                        color: 'var(--text-4)',
+                        fontFamily: 'var(--font-mono)'
+                      }}>
+                        #{form.id}
+                      </div>
+                    </div>
+                  </div>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 10px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    background: st.bg,
+                    color: st.color
+                  }}>
+                    {st.label}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ padding: '16px 20px' }}>
+                <div style={{
+                  display: 'flex',
+                  gap: '16px',
+                  marginBottom: '14px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    color: 'var(--text-3)'
+                  }}>
+                    <IconCalendar size={13} />
+                    {form.endDate
+                      ? new Date(form.endDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : 'Süresiz'}
+                  </div>
+                  {form.isRecurring && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '12px',
+                      color: '#6366f1',
+                      fontWeight: 500
+                    }}>
+                      <IconRepeat size={13} />
+                      {recurrenceLabel(form.recurrenceType)}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingTop: '12px',
+                  borderTop: '1px solid var(--border)'
+                }}>
                   <button
                     onClick={(e) => { e.stopPropagation(); openAssignModal(form); }}
                     style={{
-                      background: 'var(--purple-bg)',
-                      color: 'var(--purple)',
-                      border: '1px solid var(--purple-border)',
-                      padding: '3px 10px',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 4,
-                      fontFamily: 'var(--font-sans)',
+                      gap: '6px',
+                      padding: '8px 14px',
+                      background: 'rgba(139, 92, 246, 0.1)',
+                      color: '#7c3aed',
+                      border: '1px solid rgba(139, 92, 246, 0.2)',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all var(--transition)'
                     }}
                   >
-                    {Ico.users} ATA
+                    <IconUsers size={13} />
+                    Personel Ata
                   </button>
-                </div>
-              </div>
-
-              <div>
-                <div className="form-card-title">{form.title}</div>
-                <div className="form-card-meta">
-                  {Ico.clock}
-                  {form.endDate
-                    ? `Bitiş: ${new Date(form.endDate).toLocaleDateString('tr-TR')}`
-                    : 'Süresiz'}
-                  {form.isRecurring && (
-                    <span style={{
-                      color: 'var(--purple)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      marginLeft: 6,
-                    }}>
-                      {Ico.repeat} {recurrenceLabel(form.recurrenceType)}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="form-card-footer">
-                <button className="form-card-action">
-                  <FaPencilAlt size={13} style={{ marginRight: 6 }} /> Düzenle
-                </button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{
-                    fontSize: 11,
-                    color: 'var(--text-3)',
-                    fontFamily: 'var(--font-mono)',
-                  }}>
-                    #{form.id}
-                  </span>
-                  <button
-                    className="form-card-delete"
-                    onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(form.id); }}
-                  >
-                    {Ico.trash}
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); }}
+                      style={{
+                        padding: '8px',
+                        background: 'var(--surface-2)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius)',
+                        color: 'var(--text-3)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        transition: 'all var(--transition)'
+                      }}
+                    >
+                      <FaPencilAlt size={13} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(form.id); }}
+                      style={{
+                        padding: '8px',
+                        background: 'rgba(239, 68, 68, 0.05)',
+                        border: '1px solid rgba(239, 68, 68, 0.15)',
+                        borderRadius: 'var(--radius)',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        transition: 'all var(--transition)'
+                      }}
+                    >
+                      <FaTrash size={13} />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           );
         })}
 
-        {formTemplates.length === 0 && (
+        {filteredForms.length === 0 && (
           <div style={{
             gridColumn: '1/-1',
             textAlign: 'center',
-            padding: '60px 20px',
+            padding: '80px 20px',
             color: 'var(--text-3)',
-            background: 'var(--bg-2)',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--border)',
+            background: 'var(--surface)',
+            borderRadius: 'var(--radius-xl)',
+            border: '1px solid var(--border)'
           }}>
-            <FaClipboard style={{ fontSize: 40, marginBottom: 12 }} />
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-2)' }}>
-              Henüz form oluşturulmadı
+            <div style={{
+              width: '72px',
+              height: '72px',
+              borderRadius: '18px',
+              background: 'var(--surface-2)',
+              margin: '0 auto 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid var(--border)'
+            }}>
+              <FaClipboard size={28} color="var(--text-4)" />
             </div>
-            <div style={{ fontSize: 12, marginTop: 6 }}>
-              Yukarıdan yeni bir form oluşturarak başlayın.
+            <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-2)', marginBottom: '6px' }}>
+              {searchQuery ? 'Arama sonucu bulunamadı' : 'Henüz form oluşturulmadı'}
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-3)' }}>
+              {searchQuery ? 'Farklı bir arama terimi deneyin' : 'Yukarıdan yeni bir form oluşturarak başlayın.'}
             </div>
           </div>
         )}
@@ -256,65 +530,137 @@ export default function FormsListTab({
 
       {showAssignModal && (
         <div style={{
-          position: 'fixed', top: 0, left: 0,
-          width: '100%', height: '100%',
-          background: 'rgba(0,0,0,0.6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'rgba(15, 23, 42, 0.5)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           zIndex: 1000,
+          animation: 'fadeIn 0.2s ease'
         }}>
           <div style={{
             background: 'var(--surface)',
-            width: 420,
+            width: '440px',
             borderRadius: 'var(--radius-xl)',
-            padding: 'var(--space-6)',
+            padding: '24px',
             border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-xl)',
+            animation: 'fadeUp 0.2s ease'
           }}>
-            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-1)', marginBottom: 16 }}>
-              Personel Görevlendirme
-            </div>
-            <div style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 20 }}>
-              {allUsers.map((user) => (
-                <div
-                  key={user.id}
-                  onClick={() => toggleUser(user.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: 12,
-                    borderRadius: 'var(--radius)',
-                    cursor: 'pointer',
-                    marginBottom: 6,
-                    background: selectedUserIds.includes(user.id)
-                      ? 'var(--accent-soft)'
-                      : 'var(--bg-2)',
-                    transition: 'background 0.15s',
-                  }}
-                >
-                  <div style={{
-                    width: 20, height: 20,
-                    border: `2px solid var(--accent)`,
-                    borderRadius: 'var(--radius-sm)',
-                    background: selectedUserIds.includes(user.id) ? 'var(--accent)' : 'transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', fontSize: 12,
-                  }}>
-                    {selectedUserIds.includes(user.id) && '✓'}
-                  </div>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-1)' }}>
-                    {user.username}
-                  </span>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '20px'
+            }}>
+              <div>
+                <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.01em' }}>
+                  Personel Görevlendirme
                 </div>
-              ))}
+                <div style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '2px' }}>
+                  {targetForm?.title}
+                </div>
+              </div>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '11px',
+                fontWeight: 600,
+                background: 'rgba(99, 102, 241, 0.1)',
+                color: '#6366f1'
+              }}>
+                {selectedUserIds.length} seçili
+              </span>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
+
+            <div style={{
+              maxHeight: '320px',
+              overflowY: 'auto',
+              marginBottom: '20px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border)'
+            }}>
+              {allUsers.map((user) => {
+                const isSelected = selectedUserIds.includes(user.id);
+                return (
+                  <div
+                    key={user.id}
+                    onClick={() => toggleUser(user.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '14px 16px',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid var(--border)',
+                      background: isSelected ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                      transition: 'background var(--transition)'
+                    }}
+                  >
+                    <div style={{
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: `2px solid ${isSelected ? '#3b82f6' : 'var(--border-2)'}`,
+                      background: isSelected ? '#3b82f6' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      transition: 'all var(--transition)'
+                    }}>
+                      {isSelected && <FaCheck size={12} />}
+                    </div>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '12px',
+                      fontWeight: 600
+                    }}>
+                      {user.username?.charAt(0).toUpperCase()}
+                    </div>
+                    <span style={{
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: 'var(--text-1)'
+                    }}>
+                      {user.username}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 onClick={() => { setShowAssignModal(false); setSelectedUserIds([]); }}
                 style={{
-                  flex: 1, padding: 12, borderRadius: 'var(--radius)',
-                  border: '1px solid var(--border)', background: 'none',
-                  color: 'var(--text-2)', cursor: 'pointer',
-                  fontFamily: 'var(--font-sans)', fontWeight: 600,
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-2)',
+                  background: 'var(--surface)',
+                  color: 'var(--text-2)',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  transition: 'all var(--transition)'
                 }}
               >
                 İptal
@@ -322,10 +668,17 @@ export default function FormsListTab({
               <button
                 onClick={handleAssign}
                 style={{
-                  flex: 1, padding: 12, borderRadius: 'var(--radius)',
-                  border: 'none', background: 'var(--accent)',
-                  color: 'white', fontWeight: 600, cursor: 'pointer',
-                  fontFamily: 'var(--font-sans)',
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: 'none',
+                  background: 'var(--accent)',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 2px rgba(59, 130, 246, 0.2)',
+                  transition: 'all var(--transition)'
                 }}
               >
                 Görevlendir

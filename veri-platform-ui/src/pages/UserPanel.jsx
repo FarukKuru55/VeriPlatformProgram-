@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -66,9 +66,8 @@ export default function UserPanel() {
   const [questions, setQuestions]                 = useState([]);
   const [answers, setAnswers]                     = useState({});
   const [isAdmin, setIsAdmin]                     = useState(false);
-  const [answeredCount, setAnsweredCount]         = useState(0);
 
-  const checkIfAdmin = () => {
+  const checkIfAdmin = useCallback(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
     try {
@@ -76,9 +75,9 @@ export default function UserPanel() {
       const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded.role;
       if (role === 'Admin' || (Array.isArray(role) && role.includes('Admin'))) setIsAdmin(true);
     } catch { /* silent */ }
-  };
+  }, []);
 
-  const fetchMyTasks = async () => {
+  const fetchMyTasks = useCallback(async () => {
     const token = localStorage.getItem('token');
     try {
       const res = await axios.get('http://localhost:5062/api/Form/my-tasks', {
@@ -86,14 +85,14 @@ export default function UserPanel() {
       });
       setTasks(res.data);
     } catch { toast.error('Görev listeniz yüklenemedi.'); }
-  };
+  }, []);
 
-  const fetchQuestions = async (formId) => {
+  const fetchQuestions = useCallback(async (formId) => {
     try {
       const res = await axios.get(`http://localhost:5062/api/Form/templates/${formId}/questions`);
       setQuestions(res.data.sort((a, b) => a.order - b.order));
     } catch { toast.error('Sorular yüklenemedi.'); }
-  };
+  }, []);
 
   const handleSelectForm = (task) => {
     setSelectedFormId(task.formTemplateId);
@@ -155,21 +154,21 @@ export default function UserPanel() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     checkIfAdmin();
     const params = new URLSearchParams(window.location.search);
     const formId = params.get('formId');
-    if (formId) { setSelectedFormId(formId); fetchQuestions(formId); }
+    if (formId) { fetchQuestions(formId); setSelectedFormId(formId); }
     else fetchMyTasks();
-  }, []);
+  }, [checkIfAdmin, fetchMyTasks, fetchQuestions]);
 
-  useEffect(() => {
-    const count = questions.filter(q => {
+  const answeredCount = useMemo(() => {
+    return questions.filter(q => {
       const val = answers[q.id];
       if (val === undefined || val === null || val === '') return false;
       if (Array.isArray(val)) return val.length > 0;
       return true;
     }).length;
-    setAnsweredCount(count);
   }, [answers, questions]);
 
   const renderInput = (q) => {

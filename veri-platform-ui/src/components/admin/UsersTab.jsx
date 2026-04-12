@@ -1,39 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 import { FaCrown, FaUser, FaUserMinus, FaUserPlus } from 'react-icons/fa';
 
-/**
- * UsersTab.jsx
- * ─────────────────────────────────────────────
- * Kullanıcı yönetimi sekmesi.
- * Props:
- *  - api  : Axios instance (baseURL + auth header hazır)
- *  - Ico  : SVG ikon nesnesi
- * ─────────────────────────────────────────────
- * Özellikler:
- *  - Yeni kullanıcı ekleme (POST /Auth/register)
- *  - Admin yetkisi verme/alma (PUT /Auth/users/:id/toggle-admin)
- *  - Kullanıcı silme (DELETE /Auth/users/:id)
- *  - Sistemdeki kullanıcıları listeleme (GET /Auth/users)
- */
 export default function UsersTab({ api, Ico }) {
   const [users, setUsers]           = useState([]);
   const [regUsername, setRegUsername] = useState('');
   const [regPassword, setRegPassword] = useState('');
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const res = await api.get('/Auth/users');
       setUsers(res.data);
     } catch {
       toast.error('Kullanıcılar yüklenemedi.');
     }
-  };
+  }, [api]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const handleRegister = async () => {
     if (!regUsername.trim() || !regPassword.trim())
