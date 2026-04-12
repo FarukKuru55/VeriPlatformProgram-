@@ -6,12 +6,12 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* ─── TOPBAR ─── */
+/* ─── MODERN TOPBAR ─── */
 .up-topbar {
-  background: var(--bg-dark-2);
-  border-bottom: 1px solid var(--border-dark);
+  background: linear-gradient(180deg, #1a1d27 0%, #13151c 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   padding: 0 28px;
-  height: 58px;
+  height: 64px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -23,24 +23,24 @@
 .topbar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .topbar-logo {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), #06b6d4);
   color: white;
   font-weight: 700;
-  padding: 5px 9px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 14px;
   letter-spacing: -0.3px;
-  box-shadow: 0 0 12px var(--accent-glow);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
 .topbar-name {
   font-weight: 700;
-  font-size: 16px;
-  color: var(--text-inverse);
+  font-size: 17px;
+  color: #f8fafc;
   letter-spacing: -0.3px;
 }
 
@@ -51,18 +51,18 @@
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .topbar-btn {
-  padding: 7px 14px;
-  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   border: none;
   font-family: var(--font-sans);
-  transition: var(--transition-fast);
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -70,19 +70,19 @@
 
 .topbar-btn.admin {
   background: rgba(255, 255, 255, 0.06);
-  color: var(--text-inverse-2);
-  border: 1px solid var(--border-dark-2);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .topbar-btn.admin:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: var(--text-inverse);
+  color: #f8fafc;
 }
 
 .topbar-btn.danger {
-  background: var(--danger-bg);
+  background: rgba(239, 68, 68, 0.1);
   color: #f87171;
-  border: 1px solid var(--danger-border);
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .topbar-btn.danger:hover {
@@ -91,27 +91,27 @@
 
 /* ─── CONTAINER ─── */
 .up-container {
-  max-width: 760px;
+  max-width: 800px;
   margin: 0 auto;
-  padding: 36px 20px 60px;
+  padding: 32px 24px 60px;
 }
 
 /* ─── SAYFA BAŞLIĞI ─── */
 .up-page-header {
-  margin-bottom: var(--space-6);
+  margin-bottom: 24px;
 }
 
 .up-page-title {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   color: var(--text-1);
   letter-spacing: -0.5px;
 }
 
 .up-page-subtitle {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--text-2);
-  margin-top: 5px;
+  margin-top: 6px;
   font-weight: 400;
 }
 
@@ -119,20 +119,20 @@
 .tasks-grid {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 12px;
 }
 
 .task-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 16px;
   padding: 18px 20px;
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: 16px;
   cursor: pointer;
-  transition: var(--transition);
-  box-shadow: var(--shadow);
+  transition: all 0.25s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
   position: relative;
   overflow: hidden;
 }
@@ -140,34 +140,35 @@
 .task-card::before {
   content: '';
   position: absolute;
-  left: 0;
   top: 0;
-  bottom: 0;
-  width: 3px;
-  background: transparent;
-  transition: background var(--transition);
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), #06b6d4);
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 
 .task-card:hover {
-  border-color: var(--accent);
-  box-shadow: 0 4px 20px var(--accent-soft);
-  transform: translateX(3px);
+  border-color: rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  transform: translateX(4px);
 }
 
 .task-card:hover::before {
-  background: var(--accent);
+  opacity: 1;
 }
 
 .task-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius);
-  background: #eff6ff;
-  border: 1px solid #dbeafe;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(59, 130, 246, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 22px;
   flex-shrink: 0;
 }
 
@@ -178,9 +179,9 @@
 
 .task-title {
   font-weight: 700;
-  font-size: 14.5px;
+  font-size: 15px;
   color: var(--text-1);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -197,8 +198,8 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 9px;
-  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  border-radius: 20px;
   font-size: 11px;
   font-weight: 700;
   font-family: var(--font-mono);
@@ -224,30 +225,31 @@
 
 .task-arrow {
   color: var(--text-3);
-  transition: var(--transition);
+  transition: all 0.25s ease;
   flex-shrink: 0;
 }
 
 .task-card:hover .task-arrow {
   color: var(--accent);
-  transform: translateX(3px);
+  transform: translateX(4px);
 }
 
 .no-tasks {
   text-align: center;
-  padding: 64px 40px;
+  padding: 60px 40px;
   background: var(--surface);
-  border-radius: var(--radius-lg);
+  border-radius: 20px;
   border: 1px dashed var(--border-2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .no-tasks-icon {
-  font-size: 44px;
-  margin-bottom: 14px;
+  font-size: 48px;
+  margin-bottom: 16px;
 }
 
 .no-tasks-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-2);
 }
@@ -255,7 +257,7 @@
 .no-tasks-desc {
   font-size: 13px;
   color: var(--text-3);
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 /* ─── FORM DOLDURMA ─── */
@@ -266,7 +268,7 @@
 @keyframes upFadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -275,7 +277,7 @@
 }
 
 .form-fill-header {
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .back-link {
@@ -283,11 +285,11 @@
   align-items: center;
   gap: 6px;
   color: var(--text-3);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  margin-bottom: 14px;
-  transition: color var(--transition-fast);
+  margin-bottom: 16px;
+  transition: color 0.2s ease;
   font-family: var(--font-mono);
   letter-spacing: 0.2px;
 }
@@ -297,42 +299,59 @@
 }
 
 .form-fill-title {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   color: var(--text-1);
   letter-spacing: -0.5px;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
   line-height: 1.3;
 }
 
 .form-fill-subtitle {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--text-2);
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 /* Progress */
 .progress-container {
   background: var(--surface);
-  padding: 14px 18px;
-  border-radius: var(--radius);
+  padding: 16px 20px;
+  border-radius: 12px;
   border: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .progress-bar-wrap {
-  height: 6px;
-  background: var(--bg);
+  height: 8px;
+  background: var(--bg-3);
   border-radius: var(--radius-full);
   overflow: hidden;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), #818cf8);
+  background: linear-gradient(90deg, var(--accent), #06b6d4);
   border-radius: var(--radius-full);
   transition: width 0.4s ease;
+  position: relative;
+}
+
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .progress-footer {
@@ -342,14 +361,14 @@
 }
 
 .progress-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-2);
   font-family: var(--font-mono);
 }
 
 .progress-pct {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--accent);
   font-family: var(--font-mono);
@@ -359,17 +378,17 @@
 .questions-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .question-card {
   background: var(--surface);
-  padding: 22px 24px;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--border-2);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  border-left: 4px solid var(--border-2);
+  transition: all 0.2s ease;
   animation: upFadeIn 0.3s ease-out both;
 }
 
@@ -378,15 +397,16 @@
 }
 
 .question-card:focus-within {
-  border-color: rgba(79, 142, 247, 0.4);
-  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow);
+  border-color: rgba(59, 130, 246, 0.3);
+  border-left-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft), 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .question-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .question-number {
@@ -401,10 +421,10 @@
 .required-badge {
   background: var(--danger-bg);
   color: var(--danger);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  border-radius: 20px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-family: var(--font-mono);
@@ -412,17 +432,17 @@
 }
 
 .question-label {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-1);
-  margin-bottom: var(--space-4);
+  margin-bottom: 16px;
   line-height: 1.5;
 }
 
 /* Admin görseli */
 .q-admin-image-container {
-  margin-bottom: var(--space-4);
-  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--surface-2);
@@ -433,20 +453,20 @@
 .q-admin-image {
   max-width: 100%;
   height: auto;
-  max-height: 300px;
+  max-height: 280px;
   object-fit: contain;
 }
 
 /* ─── INPUT'LAR ─── */
 .q-input {
   width: 100%;
-  padding: 12px 14px;
+  padding: 13px 16px;
   border: 1.5px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   font-size: 14px;
   color: var(--text-1);
   background: var(--surface-2);
-  transition: var(--transition-fast);
+  transition: all 0.2s ease;
   font-family: var(--font-sans);
   outline: none;
 }
@@ -465,20 +485,20 @@
 .options-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .radio-option,
 .checkbox-option {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: 12px 14px;
+  gap: 12px;
+  padding: 14px 16px;
   border: 1.5px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   cursor: pointer;
   background: var(--surface-2);
-  transition: var(--transition-fast);
+  transition: all 0.2s ease;
   font-size: 14px;
   font-weight: 500;
   color: var(--text-2);
@@ -495,20 +515,20 @@
 .radio-option.selected,
 .checkbox-option.selected {
   border-color: var(--accent);
-  background: #eff6ff;
+  background: var(--accent-soft);
   color: var(--accent);
 }
 
 .custom-radio {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   border: 2px solid var(--border-2);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: border-color var(--transition-fast);
+  transition: border-color 0.2s ease;
 }
 
 .radio-option.selected .custom-radio {
@@ -516,22 +536,22 @@
 }
 
 .radio-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--accent);
 }
 
 .custom-checkbox {
-  width: 18px;
-  height: 18px;
-  border-radius: var(--radius-sm);
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
   border: 2px solid var(--border-2);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: var(--transition-fast);
+  transition: all 0.2s ease;
 }
 
 .checkbox-option.selected .custom-checkbox {
@@ -549,26 +569,26 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 28px;
+  padding: 32px;
   border: 2px dashed var(--border-2);
-  border-radius: var(--radius-lg);
+  border-radius: 16px;
   background: var(--surface-2);
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.25s ease;
 }
 
 .file-upload-area:hover {
   border-color: var(--accent);
-  background: #eff6ff;
+  background: var(--accent-soft);
 }
 
 .file-upload-icon {
-  font-size: 30px;
-  margin-bottom: 8px;
+  font-size: 36px;
+  margin-bottom: 10px;
 }
 
 .file-upload-text {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-2);
 }
@@ -576,15 +596,15 @@
 .file-upload-hint {
   font-size: 12px;
   color: var(--text-3);
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .file-success {
-  margin-top: 10px;
-  padding: 11px 14px;
+  margin-top: 12px;
+  padding: 12px 16px;
   background: var(--success-bg);
   border: 1px solid var(--success-border);
-  border-radius: var(--radius);
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
   color: #047857;
@@ -601,19 +621,19 @@
 
 /* ─── SUBMIT ALANI ─── */
 .form-submit-area {
-  margin-top: var(--space-5);
+  margin-top: 20px;
   background: var(--surface);
-  border-radius: var(--radius-lg);
+  border-radius: 16px;
   border: 1px solid var(--border);
   padding: 20px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: var(--shadow);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 .submit-info {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-2);
   font-weight: 500;
 }
@@ -626,24 +646,24 @@
 .submit-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 26px;
-  background: var(--bg-dark);
+  gap: 10px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, var(--accent), #06b6d4);
   color: white;
   border: none;
-  border-radius: var(--radius);
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 15px;
   font-weight: 700;
   font-family: var(--font-sans);
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.25s ease;
   letter-spacing: -0.2px;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
 .submit-btn:hover {
-  background: #1e2330;
-  box-shadow: 0 6px 16px rgba(13, 15, 20, 0.2);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
 }
 
 /* ─── NTH-CHILD ANIMASYONLAR ─── */
