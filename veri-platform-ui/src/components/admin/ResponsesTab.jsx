@@ -1,157 +1,206 @@
 import React from 'react';
 
-export default function ResponsesTab({
-  submissions,
-  searchQuery,
-  setSearchQuery,
-  questions, // Soruları eşleştirmek için kullanacağız
-  handleSubmissionChange,
-  handleUpdateSubmission,
-  Ico
-}) {
+/**
+ * ResponsesTab.jsx
+ * ─────────────────────────────────────────────
+ * Seçili formun gelen yanıtlarını listeler.
+ * Her yanıt satırı: ID/tarih, yanıtlar, durum, not, kaydet.
+ * Props:
+ *  - submissions              : Yanıt listesi
+ *  - searchQuery / setSearchQuery : Arama filtresi
+ *  - questions                : Soru listesi (label eşleştirmek için)
+ *  - handleSubmissionChange   : Lokal state günceller (optimistic)
+ *  - handleUpdateSubmission   : API'ye kaydeder
+ *  - Ico                      : SVG ikon nesnesi
+ */
 
-  // Durum renklerini belirleyen yardımcı fonksiyon (Eksikti, ekledim)
-  const statusStyle = (status) => {
-    switch (status) {
-      case 'Tamamlandı': return { border: '1px solid var(--green)', color: 'var(--green)', background: 'var(--green-bg)' };
-      case 'İşlemde': return { border: '1px solid var(--amber)', color: 'var(--amber)', background: 'var(--amber-bg)' };
-      default: return { border: '1px solid var(--red)', color: 'var(--red)', background: 'var(--red-bg)' };
-    }
-  };
-
-  // Yanıtları okunaklı hale getiren ve SORU METNİNİ bulan fonksiyon
-const renderAnswers = (answersJson) => {
-  try {
-    const answers = JSON.parse(answersJson);
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {Object.entries(answers).map(([questionId, value], index) => {
-          const question = questions.find(q => q.id === parseInt(questionId));
-          const questionLabel = question ? question.label : `Soru #${questionId}`;
-          const questionType = question ? question.type : 'text';
-
-          // 🛠 Değeri tipine göre formatlayalım
-          let formattedValue = value;
-
-          if (questionType === 'date' || questionType === 'datetime-local') {
-            // Tarihi daha okunaklı yap (Örn: 9 Mayıs 2026)
-            formattedValue = new Date(value).toLocaleDateString('tr-TR', {
-              day: 'numeric', month: 'long', year: 'numeric'
-            });
-          } else if (questionType === 'file' && value && value.startsWith('http')) {
-            // Dosya ise buton yap
-            formattedValue = (
-              <a href={value} target="_blank" rel="noreferrer" 
-                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', background: 'var(--accent-glow)', color: 'var(--accent)', borderRadius: '6px', fontSize: '12px', fontWeight: '700', textDecoration: 'none', border: '1px solid var(--accent)' }}>
-                {Ico.doc || '📁'} Dosyayı Aç
-              </a>
-            );
-          } else if (Array.isArray(value)) {
-            formattedValue = value.join(', ');
-          }
-
-          return (
-            <div key={index} style={{ padding: '12px', borderRadius: '12px', background: 'var(--bg)', border: '1px solid var(--border)', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
-              <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
-                <span>{questionLabel}</span>
-                <span style={{ opacity: 0.5 }}>{questionType}</span>
-              </div>
-              <div style={{ fontSize: '14px', color: 'var(--text-1)', fontWeight: '600', lineHeight: '1.4' }}>
-                {formattedValue || <span style={{ color: 'var(--text-3)', fontWeight: '400', fontStyle: 'italic' }}>Yanıt yok</span>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  } catch (e) {
-    return <span style={{ color: 'var(--red)' }}>Veri ayrıştırılamadı.</span>;
+/** Durum seçici için arka plan / metin rengi */
+const statusStyle = (status) => {
+  switch (status) {
+    case 'Tamamlandı':
+      return { background: 'var(--green-bg)',  color: 'var(--green)',  border: '1px solid rgba(52,211,153,0.2)' };
+    case 'İşlemde':
+      return { background: 'var(--amber-bg)', color: 'var(--amber)', border: '1px solid rgba(251,191,36,0.2)' };
+    default:
+      return { background: 'var(--surface)',  color: 'var(--text-2)', border: '1px solid var(--border-2)' };
   }
 };
 
-  const filteredSubs = submissions.filter(s => 
-    !searchQuery || 
-    s.answersJson?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    String(s.id).includes(searchQuery)
+export default function ResponsesTab({
+  submissions,
+  searchQuery, setSearchQuery,
+  questions,
+  handleSubmissionChange,
+  handleUpdateSubmission,
+  Ico,
+}) {
+  /* ── Yanıt JSON'ını okunabilir karta dönüştür ── */
+  const renderAnswers = (answersJson) => {
+    try {
+      const parsed = JSON.parse(answersJson);
+      return Object.entries(parsed).map(([qId, value]) => {
+        const question = questions.find((q) => q.id === parseInt(qId));
+        const label    = question ? question.label : `Soru #${qId}`;
+        const qType    = question?.type ?? 'text';
+
+        /* Değeri tipine göre formatla */
+        let display = value;
+        if ((qType === 'date' || qType === 'datetime-local') && value) {
+          display = new Date(value).toLocaleDateString('tr-TR', {
+            day: 'numeric', month: 'long', year: 'numeric',
+          });
+        } else if (qType === 'file' && typeof value === 'string' && value.startsWith('http')) {
+          display = (
+            <a
+              href={value}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '4px 10px',
+                background: 'var(--accent-soft)',
+                color: 'var(--accent)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 12,
+                fontWeight: 700,
+                textDecoration: 'none',
+                border: '1px solid rgba(79,142,247,0.2)',
+              }}
+            >
+              📁 Dosyayı Aç
+            </a>
+          );
+        } else if (Array.isArray(value)) {
+          display = value.join(', ');
+        }
+
+        return (
+          <div className="answer-item" key={qId}>
+            <div className="answer-question">{label}</div>
+            <div className="answer-value">
+              {display || (
+                <span style={{ color: 'var(--text-3)', fontStyle: 'italic', fontWeight: 400 }}>
+                  Yanıt yok
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      });
+    } catch {
+      return <span style={{ color: 'var(--red)', fontSize: 12 }}>Veri okunamadı.</span>;
+    }
+  };
+
+  const filtered = submissions.filter(
+    (s) =>
+      !searchQuery ||
+      s.answersJson?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(s.id).includes(searchQuery)
   );
 
   return (
     <div>
-      {/* TOOLBAR */}
-      <div className="responses-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      {/* ── Araç Çubuğu ── */}
+      <div className="responses-toolbar">
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>
-          <span style={{ color: 'var(--text-1)', fontFamily: "'Inter', monospace", fontSize: '16px' }}>{filteredSubs.length}</span> kayıt bulundu
+          <span style={{ color: 'var(--text-1)', fontFamily: 'var(--font-mono)', fontSize: 16 }}>
+            {filtered.length}
+          </span>{' '}
+          kayıt
         </div>
-        <div className="responses-search" style={{ display: 'flex', alignItems: 'center', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '8px 12px', width: '300px' }}>
-          <div style={{ color: 'var(--text-3)', marginRight: '8px', display: 'flex' }}>{Ico.search}</div>
-          <input type="text" placeholder="Yanıt veya ID ara..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ border: 'none', background: 'transparent', color: 'var(--text-1)', outline: 'none', width: '100%', fontSize: '13px' }} />
+        <div className="responses-search">
+          <div className="responses-search-icon">{Ico.search}</div>
+          <input
+            type="text"
+            placeholder="Yanıt veya ID ara..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
 
-      {/* TABLO */}
-      <div className="responses-table-wrap" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
-        <table className="responses-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead style={{ background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
+      {/* ── Tablo ── */}
+      <div className="responses-table-wrap">
+        <table className="responses-table">
+          <thead className="rt-head">
             <tr>
-              <th style={{ padding: '16px', color: 'var(--text-2)', fontSize: '12px', fontWeight: '600', width: '150px' }}>KAYIT BİLGİSİ</th>
-              <th style={{ padding: '16px', color: 'var(--text-2)', fontSize: '12px', fontWeight: '600' }}>YANITLAR</th>
-              <th style={{ padding: '16px', color: 'var(--text-2)', fontSize: '12px', fontWeight: '600', width: '160px' }}>DURUM</th>
-              <th style={{ padding: '16px', color: 'var(--text-2)', fontSize: '12px', fontWeight: '600', width: '200px' }}>YÖNETİCİ NOTU</th>
-              <th style={{ padding: '16px', color: 'var(--text-2)', fontSize: '12px', fontWeight: '600', textAlign: 'right', width: '100px' }}>İŞLEM</th>
+              <th className="rt-th">Kayıt</th>
+              <th className="rt-th">Yanıtlar</th>
+              <th className="rt-th">Durum</th>
+              <th className="rt-th">Yönetici Notu</th>
+              <th className="rt-th">İşlem</th>
             </tr>
           </thead>
           <tbody>
-            {filteredSubs.length > 0 ? filteredSubs.map(s => (
-              <tr key={s.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                  <div style={{ color: 'var(--accent)', fontWeight: '700', fontFamily: "'Inter', monospace", marginBottom: '4px' }}>#{s.id}</div>
-                  <div style={{ color: 'var(--text-2)', fontSize: '12px' }}>{new Date(s.submittedAt).toLocaleDateString('tr-TR')}</div>
-                  <div style={{ color: 'var(--text-3)', fontSize: '11px' }}>{new Date(s.submittedAt).toLocaleTimeString('tr-TR')}</div>
-                </td>
-                <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                  {renderAnswers(s.answersJson)}
-                </td>
-                <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                  <select 
-                    value={s.status || 'Yeni'} 
-                    onChange={e => handleSubmissionChange(s.id, 'status', e.target.value)} 
-                    style={{ 
-                        ...statusStyle(s.status), 
-                        width: '100%',
-                        padding: '8px', 
-                        borderRadius: '8px', 
-                        outline: 'none', 
-                        cursor: 'pointer', 
-                        fontSize: '12px', 
-                        fontWeight: '700' 
-                    }}
-                  >
-                    <option value="Yeni">Yeni</option>
-                    <option value="İşlemde">İşlemde</option>
-                    <option value="Tamamlandı">Tamamlandı</option>
-                  </select>
-                </td>
-                <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                  <textarea 
-                    placeholder="Not ekle..." 
-                    value={s.adminNote || ''} 
-                    onChange={e => handleSubmissionChange(s.id, 'adminNote', e.target.value)} 
-                    style={{ width: '100%', minHeight: '80px', padding: '10px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-1)', fontSize: '12px', outline: 'none' }} 
-                  />
-                </td>
-                <td style={{ padding: '16px', verticalAlign: 'top', textAlign: 'right' }}>
-                  <button 
-                    onClick={() => handleUpdateSubmission(s.id, s.status, s.adminNote)} 
-                    style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '10px 16px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '12px' }}
-                  >
-                    Kaydet
-                  </button>
-                </td>
-              </tr>
-            )) : (
+            {filtered.length > 0 ? (
+              filtered.map((s) => (
+                <tr className="rt-tr" key={s.id}>
+                  {/* ID & Tarih */}
+                  <td className="rt-td">
+                    <div className="submission-id">#{s.id}</div>
+                    <div className="submission-date">
+                      {new Date(s.submittedAt).toLocaleDateString('tr-TR')}
+                    </div>
+                    <div className="submission-date">
+                      {new Date(s.submittedAt).toLocaleTimeString('tr-TR')}
+                    </div>
+                  </td>
+
+                  {/* Yanıt detayı */}
+                  <td className="rt-td">
+                    <div className="answer-block">
+                      {renderAnswers(s.answersJson)}
+                    </div>
+                  </td>
+
+                  {/* Durum seçici */}
+                  <td className="rt-td">
+                    <select
+                      className="status-select"
+                      value={s.status || 'Yeni'}
+                      onChange={(e) => handleSubmissionChange(s.id, 'status', e.target.value)}
+                      style={statusStyle(s.status)}
+                    >
+                      <option value="Yeni">🔴 Yeni</option>
+                      <option value="İşlemde">🟡 İşlemde</option>
+                      <option value="Tamamlandı">🟢 Tamamlandı</option>
+                    </select>
+                  </td>
+
+                  {/* Not */}
+                  <td className="rt-td">
+                    <textarea
+                      className="note-textarea"
+                      placeholder="Not ekle..."
+                      value={s.adminNote || ''}
+                      onChange={(e) => handleSubmissionChange(s.id, 'adminNote', e.target.value)}
+                    />
+                  </td>
+
+                  {/* Kaydet */}
+                  <td className="rt-td">
+                    <button
+                      className="save-btn"
+                      onClick={() => handleUpdateSubmission(s.id, s.status, s.adminNote)}
+                    >
+                      Kaydet
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
               <tr>
-                <td colSpan="5" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-3)' }}>
-                  {searchQuery ? 'Arama kriterine uygun kayıt bulunamadı.' : 'Bu form için henüz yanıt yok.'}
+                <td
+                  colSpan="5"
+                  style={{ padding: '60px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}
+                >
+                  <div style={{ fontSize: 32, marginBottom: 10 }}>📭</div>
+                  {searchQuery
+                    ? 'Arama kriterine uygun kayıt bulunamadı.'
+                    : 'Bu form için henüz yanıt yok.'}
                 </td>
               </tr>
             )}
