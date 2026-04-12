@@ -124,6 +124,38 @@ public class AuthController : ControllerBase
             return Ok(new { message = $"'{dto.Username}' adında yeni bir Admin oluşturuldu." });
         }
     }
+    // ════════════ 2B. HERKESE AÇIK KAYIT (PUBLIC REGISTER) ════════════
+    [HttpPost("register-public")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RegisterPublic([FromBody] RegisterDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password))
+            return BadRequest("Kullanıcı adı ve şifre boş olamaz.");
+
+        if (dto.Password.Length < 4)
+            return BadRequest("Şifre en az 4 karakter olmalıdır.");
+
+        var userRole = await _db.Roles.FirstOrDefaultAsync(r => r.Name == "User");
+        if (userRole == null) return StatusCode(500, "Sistemde 'User' rolü tanımlı değil.");
+
+        var existingUser = await _db.Users.FirstOrDefaultAsync(u => u.Username == dto.Username);
+        if (existingUser != null)
+            return BadRequest("Bu kullanıcı adı zaten kullanılmaktadır.");
+
+        string passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+        var newUser = new User
+        {
+            Username = dto.Username,
+            PasswordHash = passwordHash,
+            UserRoles = new List<UserRole> { new UserRole { RoleId = userRole.Id } }
+        };
+
+        _db.Users.Add(newUser);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Kayıt başarılı! Şimdi giriş yapabilirsiniz." });
+    }
+
     // ════════════ 3. TÜM KULLANICILARI LİSTELE ════════════
     [HttpGet("users")]
     [Authorize(Roles = "Admin")]
