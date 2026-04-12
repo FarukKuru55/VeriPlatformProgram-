@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import { FaClipboard } from 'react-icons/fa';
+import { FaClipboard, FaPencilAlt } from 'react-icons/fa';
 import {
   IconPlus,
   IconUsers,
@@ -210,7 +210,9 @@ export default function FormsListTab({
               </div>
 
               <div className="form-card-footer">
-                <button className="form-card-action">Yönet →</button>
+                <button className="form-card-action">
+                  <FaPencilAlt size={13} style={{ marginRight: 6 }} /> Düzenle
+                </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{
                     fontSize: 11,

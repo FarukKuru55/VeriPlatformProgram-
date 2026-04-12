@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
-import { FaCrown, FaUser } from 'react-icons/fa';
+import { FaCrown, FaUser, FaUserMinus, FaUserPlus } from 'react-icons/fa';
 
 /**
  * UsersTab.jsx
@@ -22,10 +22,6 @@ export default function UsersTab({ api, Ico }) {
   const [regUsername, setRegUsername] = useState('');
   const [regPassword, setRegPassword] = useState('');
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
   const fetchUsers = async () => {
     try {
       const res = await api.get('/Auth/users');
@@ -34,6 +30,10 @@ export default function UsersTab({ api, Ico }) {
       toast.error('Kullanıcılar yüklenemedi.');
     }
   };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const handleRegister = async () => {
     if (!regUsername.trim() || !regPassword.trim())
@@ -253,10 +253,14 @@ export default function UsersTab({ api, Ico }) {
                           border: '1px solid var(--border-2)',
                           background: 'transparent',
                           fontFamily: 'var(--font-sans)',
-                          color: user.isAdmin ? 'var(--amber)' : 'var(--green)',
+                          color: user.isAdmin ? 'var(--warning)' : 'var(--success)',
                           transition: 'all 0.15s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
                         }}
                       >
+                        {user.isAdmin ? <FaUserMinus size={13} /> : <FaUserPlus size={13} />}
                         {user.isAdmin ? 'Yetkisini Kaldır' : 'Admin Yap'}
                       </button>
                       <button

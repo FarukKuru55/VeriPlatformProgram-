@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableItem from '../SortableItem';
-import { FaClipboardList } from 'react-icons/fa';
+import { FaClipboardList, FaTextWidth, FaHashtag, FaCalendarAlt, FaDotCircle, FaCheckSquare, FaImage, FaFileAlt } from 'react-icons/fa';
 
 /**
  * FormBuilderTab.jsx
@@ -32,7 +32,6 @@ export default function FormBuilderTab({
   setQuestions,
   fetchQuestions,
   api,
-  Ico,
 }) {
   const [newQuestionText, setNewQuestionText] = useState('');
   const [selectedType, setSelectedType]       = useState('text');
@@ -146,6 +145,26 @@ export default function FormBuilderTab({
     setCurrentOption('');
   };
 
+  const typeIcons = {
+    text: <FaTextWidth size={14} />,
+    number: <FaHashtag size={14} />,
+    date: <FaCalendarAlt size={14} />,
+    radio: <FaDotCircle size={14} />,
+    checkbox: <FaCheckSquare size={14} />,
+    image: <FaImage size={14} />,
+    file: <FaFileAlt size={14} />,
+  };
+
+  const typeLabels = {
+    text: 'Kısa Yanıt',
+    number: 'Sayısal Yanıt',
+    date: 'Tarih Seçimi',
+    radio: 'Tek Seçim',
+    checkbox: 'Çoklu Seçim',
+    image: 'Görsel Yükleme',
+    file: 'Belge Yükleme',
+  };
+
   return (
     <div className="builder-grid">
 
@@ -182,14 +201,13 @@ export default function FormBuilderTab({
               className="field-select"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
+              style={{ display: 'flex', alignItems: 'center' }}
             >
-              <option value="text">Kısa Yanıt</option>
-              <option value="number">Sayısal Yanıt</option>
-              <option value="date">Tarih Seçimi</option>
-              <option value="radio">Tek Seçim</option>
-              <option value="checkbox">Çoklu Seçim</option>
-              <option value="image">Görsel Yükleme</option>
-              <option value="file">Belge Yükleme</option>
+              {Object.entries(typeLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {typeIcons[value]} {label}
+                </option>
+              ))}
             </select>
           </div>
 

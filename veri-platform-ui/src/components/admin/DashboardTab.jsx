@@ -48,7 +48,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-const ExportButton = ({ api }) => {
+const ExportButton = () => {
   const handleExport = async (format) => {
     const token = localStorage.getItem('token');
     try {
@@ -66,7 +66,7 @@ const ExportButton = ({ api }) => {
       link.remove();
       window.URL.revokeObjectURL(url);
       toast.success(`${format.toUpperCase()} dosyası indirildi!`);
-    } catch (error) {
+    } catch {
       toast.error('Export sırasında hata oluştu.');
     }
   };
@@ -161,6 +161,9 @@ export default function DashboardTab({ dashboardStats, api }) {
     formStatusBreakdown,
     userPerformance,
   } = dashboardStats;
+
+  // eslint-disable-next-line no-unused-vars
+  const _unusedStats = { totalAssignments, completedAssignments, pendingAssignments, completionRate, submissionsByDate, formStatusBreakdown, userPerformance };
 
   const statCards = [
     {

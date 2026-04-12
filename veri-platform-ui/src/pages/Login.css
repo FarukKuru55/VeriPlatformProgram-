@@ -165,7 +165,7 @@
 
 /* SAĞ PANEL */
 .login-right {
-  background: var(--surface);
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -177,17 +177,21 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.04) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.03) 0%, transparent 50%);
+  background: radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.04) 0%, transparent 50%);
   pointer-events: none;
 }
 
 .login-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   position: relative;
   z-index: 1;
   animation: fadeSlideIn 0.4s ease-out;
+  background: var(--surface);
+  padding: 40px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
 }
 
 @keyframes fadeSlideIn {
@@ -202,34 +206,55 @@
 }
 
 .card-header {
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 }
 
 .card-title {
   font-size: 28px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-1);
-  letter-spacing: -0.8px;
+  letter-spacing: -0.5px;
   margin-bottom: 8px;
+  font-family: var(--font-sans);
 }
 
 .card-subtitle {
   font-size: 14px;
   color: var(--text-3);
   font-weight: 400;
+  line-height: 1.5;
+}
+
+.forgot-link {
+  display: block;
+  text-align: right;
+  font-size: 13px;
+  color: var(--accent);
+  margin-top: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.forgot-link:hover {
+  color: var(--accent-2);
 }
 
 .form-group {
-  margin-bottom: var(--space-5);
+  margin-bottom: 20px;
 }
 
 .form-label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
   margin-bottom: 8px;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
 }
 
 .input-wrapper {
@@ -241,7 +266,7 @@
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: var(--text-4);
   display: flex;
   align-items: center;
   pointer-events: none;
@@ -249,21 +274,21 @@
 
 .form-input {
   width: 100%;
-  padding: 13px 14px 13px 42px;
-  border: 1.5px solid #e5e7eb;
-  border-radius: var(--radius);
+  padding: 14px 16px 14px 44px;
+  border: 1.5px solid var(--border-2);
+  border-radius: 10px;
   font-size: 14px;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   color: var(--text-1);
-  background: #fafafa;
-  transition: var(--transition);
+  background: var(--surface);
+  transition: all var(--transition-fast);
   outline: none;
 }
 
 .form-input:focus {
-  border-color: var(--primary);
+  border-color: var(--accent);
   background: var(--surface);
-  box-shadow: 0 0 0 3px var(--primary-soft);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .form-input:disabled {
@@ -272,34 +297,34 @@
 }
 
 .form-input::placeholder {
-  color: #9ca3af;
+  color: var(--text-4);
   font-weight: 400;
 }
 
 .login-submit-btn {
   width: 100%;
-  padding: 14px;
-  background: var(--text-1);
+  padding: 14px 24px;
+  background: var(--accent);
   color: white;
   border: none;
-  border-radius: var(--radius);
+  border-radius: 10px;
   font-size: 15px;
   font-weight: 600;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   cursor: pointer;
-  transition: var(--transition);
+  transition: all var(--transition);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  letter-spacing: -0.2px;
   margin-top: 8px;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
 }
 
 .login-submit-btn:hover:not(:disabled) {
-  background: #1e293b;
+  background: var(--accent-2);
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
 .login-submit-btn:disabled {
@@ -309,28 +334,24 @@
 }
 
 .login-submit-btn.loading {
-  background: var(--primary-dark);
+  background: var(--accent-2);
 }
 
 .divider {
   height: 1px;
-  background: var(--surface-3);
+  background: var(--border);
   margin: 28px 0;
   position: relative;
 }
 
 .divider::after {
-  content: 'KURUMSAL GİRİŞ';
+  content: '';
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: var(--surface);
   padding: 0 12px;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-4);
-  letter-spacing: 1.5px;
 }
 
 .footer-note {
@@ -342,7 +363,7 @@
 }
 
 .footer-note a {
-  color: var(--primary);
+  color: var(--accent);
   text-decoration: none;
   font-weight: 600;
 }
@@ -369,6 +390,9 @@
   .login-left {
     display: none;
   }
+  .login-card {
+    padding: 32px 24px;
+  }
 }
 
 .auth-toggle {
@@ -384,15 +408,171 @@
 .toggle-link {
   background: none;
   border: none;
-  color: var(--primary);
+  color: var(--accent);
   font-weight: 600;
   cursor: pointer;
   padding: 0;
   font-size: 14px;
-  transition: var(--transition);
+  transition: color var(--transition-fast);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
 }
 
 .toggle-link:hover {
-  color: var(--primary-dark);
-  text-decoration: underline;
+  color: var(--accent-2);
+}
+
+/* Şifre Sıfırlama Modal */
+.reset-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.reset-modal {
+  background: var(--surface);
+  width: 100%;
+  max-width: 420px;
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  box-shadow: var(--shadow-xl);
+  animation: fadeSlideIn 0.3s ease;
+}
+
+.reset-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.reset-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-1);
+  font-family: var(--font-sans);
+}
+
+.reset-modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg);
+  color: var(--text-3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.reset-modal-close:hover {
+  background: var(--border-2);
+  color: var(--text-1);
+}
+
+.reset-steps {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.reset-step {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-2);
+  transition: background var(--transition);
+}
+
+.reset-step.active {
+  background: var(--accent);
+}
+
+.reset-step.completed {
+  background: var(--success);
+}
+
+.reset-info {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-glow);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--accent-2);
+  line-height: 1.5;
+}
+
+.reset-code-input {
+  width: 100%;
+  padding: 16px;
+  border: 2px solid var(--border-2);
+  border-radius: 10px;
+  font-size: 24px;
+  font-family: var(--font-mono);
+  text-align: center;
+  letter-spacing: 8px;
+  color: var(--text-1);
+  background: var(--surface);
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.reset-code-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.reset-code-input::placeholder {
+  letter-spacing: 8px;
+  color: var(--text-4);
+}
+
+.reset-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 8px;
+  font-family: var(--font-mono);
+}
+
+.reset-success {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.reset-success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--success-bg);
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 32px;
+}
+
+.reset-success-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-1);
+  margin-bottom: 8px;
+}
+
+.reset-success-subtext {
+  font-size: 14px;
+  color: var(--text-3);
 }

@@ -15,7 +15,7 @@ namespace VeriPlatform.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AppDbContext _db;
-    private readonly IConfiguration _config; // JWT Token üretmek için gerekli ayarlar
+    private readonly IConfiguration _config;
 
     public AuthController(AppDbContext db, IConfiguration config)
     {
@@ -226,5 +226,75 @@ public class AuthController : ControllerBase
         await _db.SaveChangesAsync();
 
         return Ok(new { message = "Kullanıcı sistemden tamamen silindi." });
+    }
+
+    // ════════════ 6. ŞİFRE SIFIRLAMA ════════════
+    public class ForgotPasswordDto
+    {
+        public string Username { get; set; } = null!;
+        public string? Email { get; set; }
+    }
+
+    public class ResetPasswordDto
+    {
+        public string Username { get; set; } = null!;
+        public string Code { get; set; } = null!;
+        public string NewPassword { get; set; } = null!;
+    }
+
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == dto.Username);
+        if (user == null)
+            return BadRequest("Kullanıcı bulunamadı.");
+
+        if (string.IsNullOrEmpty(dto.Email) && string.IsNullOrEmpty(user.Email))
+            return BadRequest("Lütfen e-posta adresinizi girin.");
+
+        var targetEmail = dto.Email ?? user.Email;
+        
+        if (string.IsNullOrEmpty(targetEmail))
+            return BadRequest("Bu kullanıcıya ait e-posta adresi bulunamadı. Lütfen e-posta adresinizi girin.");
+
+        var resetCode = new Random().Next(100000, 999999).ToString();
+        user.ResetCode = resetCode;
+        user.ResetCodeExpires = DateTime.UtcNow.AddMinutes(15);
+
+        await _db.SaveChangesAsync();
+
+        Console.WriteLine($"[ŞİFRE SIFIRLAMA] Kullanıcı: {user.Username} | Email: {targetEmail} | Kod: {resetCode} | Geçerlilik: 15 dakika");
+
+        return Ok(new { message = "Doğrulama kodu gönderildi. (Test modu: Konsolu kontrol edin)", codeSent = true });
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == dto.Username);
+
+        if (user == null)
+            return BadRequest("Kullanıcı bulunamadı.");
+
+        if (string.IsNullOrEmpty(user.ResetCode) || user.ResetCode != dto.Code)
+            return BadRequest("Geçersiz doğrulama kodu.");
+
+        if (user.ResetCodeExpires == null || user.ResetCodeExpires < DateTime.UtcNow)
+            return BadRequest("Doğrulama kodunun süresi dolmuş. Lütfen yeni bir kod talep edin.");
+
+        if (dto.NewPassword.Length < 4)
+            return BadRequest("Şifre en az 4 karakter olmalıdır.");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+        user.ResetCode = null;
+        user.ResetCodeExpires = null;
+
+        await _db.SaveChangesAsync();
+
+        Console.WriteLine($"[ŞİFRE GÜNCELLEME] Kullanıcı: {user.Username} | Şifre başarıyla güncellendi.");
+
+        return Ok(new { message = "Şifreniz başarıyla güncellendi." });
     }
 }

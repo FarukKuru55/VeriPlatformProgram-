@@ -68,24 +68,6 @@ export default function UserPanel() {
   const [isAdmin, setIsAdmin]                     = useState(false);
   const [answeredCount, setAnsweredCount]         = useState(0);
 
-  useEffect(() => {
-    checkIfAdmin();
-    const params = new URLSearchParams(window.location.search);
-    const formId = params.get('formId');
-    if (formId) { setSelectedFormId(formId); fetchQuestions(formId); }
-    else fetchMyTasks();
-  }, []);
-
-  useEffect(() => {
-    const count = questions.filter(q => {
-      const val = answers[q.id];
-      if (val === undefined || val === null || val === '') return false;
-      if (Array.isArray(val)) return val.length > 0;
-      return true;
-    }).length;
-    setAnsweredCount(count);
-  }, [answers, questions]);
-
   const checkIfAdmin = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -93,7 +75,7 @@ export default function UserPanel() {
       const decoded = jwtDecode(token);
       const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded.role;
       if (role === 'Admin' || (Array.isArray(role) && role.includes('Admin'))) setIsAdmin(true);
-    } catch { }
+    } catch { /* silent */ }
   };
 
   const fetchMyTasks = async () => {
@@ -171,6 +153,24 @@ export default function UserPanel() {
       setTimeout(handleBack, 1500);
     } catch { toast.error('Gönderim sırasında bir hata oluştu.'); }
   };
+
+  useEffect(() => {
+    checkIfAdmin();
+    const params = new URLSearchParams(window.location.search);
+    const formId = params.get('formId');
+    if (formId) { setSelectedFormId(formId); fetchQuestions(formId); }
+    else fetchMyTasks();
+  }, []);
+
+  useEffect(() => {
+    const count = questions.filter(q => {
+      const val = answers[q.id];
+      if (val === undefined || val === null || val === '') return false;
+      if (Array.isArray(val)) return val.length > 0;
+      return true;
+    }).length;
+    setAnsweredCount(count);
+  }, [answers, questions]);
 
   const renderInput = (q) => {
     const options = q.optionsJson ? JSON.parse(q.optionsJson) : [];

@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { DndContext, closestCenter } from '@dnd-kit/core';
-import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableItem from '../components/SortableItem';
+import { arrayMove } from '@dnd-kit/sortable';
 import Sidebar from '../components/admin/Sidebar';
 import UsersTab from '../components/admin/UsersTab';
 import DashboardTab from '../components/admin/DashboardTab';
 import FormsListTab from '../components/admin/FormsListTab';
 import FormBuilderTab from '../components/admin/FormBuilderTab';
 import ResponsesTab from '../components/admin/ResponsesTab';
+import { FaUser, FaKey, FaSignOutAlt, FaTimes, FaCheck } from 'react-icons/fa';
 
 import Swal from 'sweetalert2';
 import './AdminPanel.css';
@@ -83,12 +83,20 @@ export default function AdminPanel() {
   const [newQuestionText, setNewQuestionText] = useState('');
   const [selectedType, setSelectedType]   = useState('text');
   const [options, setOptions]             = useState([]);
-  const [currentOption, setCurrentOption] = useState('');
   const [editingQuestionId, setEditingQuestionId] = useState(null);
 
   const [submissions, setSubmissions]     = useState([]);
   const [searchQuery, setSearchQuery]     = useState('');
   const [dashboardStats, setDashboardStats] = useState(null);
+
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const dropdownRef = useRef(null);
 
   const swalOpts = { background: '#1e2330', color: '#f0f2f8', showCancelButton: true };
 
@@ -116,6 +124,49 @@ export default function AdminPanel() {
   useEffect(() => { if (selectedForm) { fetchQuestions(); fetchSubmissions(); } }, [selectedForm]);
   useEffect(() => { if (activeTab === 'dashboard') fetchStats(); }, [activeTab]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handlePasswordChange = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword)
+      return toast.error('Tüm alanları doldurunuz.');
+    if (newPassword !== confirmPassword)
+      return toast.error('Yeni şifreler eşleşmiyor.');
+    if (newPassword.length < 4)
+      return toast.error('Şifre en az 4 karakter olmalıdır.');
+
+    setIsChangingPassword(true);
+    try {
+      await axios.post('http://localhost:5062/api/Auth/change-password', {
+        username: localStorage.getItem('username') || 'faruk',
+        currentPassword,
+        newPassword
+      });
+      toast.success('Şifreniz başarıyla güncellendi.');
+      setShowPasswordModal(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowDropdown(false);
+    } catch (err) {
+      toast.error(err.response?.data || 'Şifre değiştirilemedi.');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleProfileClick = () => {
+    toast.success('Profil bilgileriniz sistem yöneticisi tarafından yönetilmektedir.');
+    setShowDropdown(false);
+  };
+
   /* ── Template ── */
   const handleCreateTemplate = async () => {
     if (!newFormTitle.trim()) return toast.error('Form adı boş olamaz!');
@@ -135,7 +186,7 @@ export default function AdminPanel() {
   };
 
   /* ── Sorular ── */
-  const handleEditClick = (qId) => {
+  const _handleEditClick = (qId) => {
     const q = questions.find(x => x.id === qId);
     if (!q) return;
     setNewQuestionText(q.label); setSelectedType(q.type);
@@ -143,7 +194,7 @@ export default function AdminPanel() {
     setEditingQuestionId(q.id);
   };
 
- const handleSaveQuestion = async () => {
+ const _handleSaveQuestion = async () => {
         if (!newQuestionText.trim()) return toast.error("Soru metni boş olamaz!");
         
         const payload = { 
@@ -174,14 +225,14 @@ export default function AdminPanel() {
         }
     };
 
-  const handleDeleteQuestion = async (id) => {
+  const _handleDeleteQuestion = async (id) => {
     const r = await Swal.fire({ ...swalOpts, title: 'Soruyu sil?', icon: 'warning', confirmButtonColor: '#f87171', cancelButtonColor: '#242938', confirmButtonText: 'Sil', cancelButtonText: 'Vazgeç' });
     if (!r.isConfirmed) return;
     try { await api.delete(`/Form/questions/${id}`); toast.success('Silindi.'); fetchQuestions(); }
     catch { toast.error('Silinemedi.'); }
   };
 
-  const handleDragEnd = async ({ active, over }) => {
+  const _handleDragEnd = async ({ active, over }) => {
     if (!over || active.id === over.id) return;
     let ordered = [];
     setQuestions(items => {
@@ -241,16 +292,39 @@ export default function AdminPanel() {
               {selectedForm && <div className="header-breadcrumb">formlar / {activeTab==='builder' ? 'düzenleyici' : 'yanıtlar'}</div>}
             </div>
           </div>
-          <div className="header-right">
+          <div className="header-right" ref={dropdownRef}>
             {selectedForm && (
               <button className="preview-btn" onClick={() => window.open(`/user?formId=${selectedForm.id}`, '_blank')}>
                 {Ico.eye} Önizle
               </button>
             )}
             <div className="header-divider" />
-            <div className="avatar">F</div>
-            <div className="header-user-name">Faruk K.</div>
-            <button className="logout-btn" onClick={handleLogout}>{Ico.logout}</button>
+            <div style={{ position: 'relative' }}>
+              <div className="avatar-ring" onClick={() => setShowDropdown(!showDropdown)}>
+                FK
+              </div>
+              {showDropdown && (
+                <>
+                  <div className="dropdown-overlay" onClick={() => setShowDropdown(false)} />
+                  <div className="dropdown-menu">
+                    <div className="dropdown-header">
+                      <div className="dropdown-user-name">Faruk K.</div>
+                      <div className="dropdown-user-role">Sistem Yöneticisi</div>
+                    </div>
+                    <button className="dropdown-item" onClick={handleProfileClick}>
+                      <FaUser size={16} /> Profil
+                    </button>
+                    <button className="dropdown-item" onClick={() => { setShowPasswordModal(true); setShowDropdown(false); }}>
+                      <FaKey size={16} /> Şifre Değiştir
+                    </button>
+                    <div className="dropdown-divider" />
+                    <button className="dropdown-item danger" onClick={handleLogout}>
+                      <FaSignOutAlt size={16} /> Oturumu Kapat
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
@@ -315,6 +389,80 @@ export default function AdminPanel() {
 
         </main>
       </div>
+
+      {showPasswordModal && (
+        <div className="reset-modal-overlay" onClick={() => setShowPasswordModal(false)}>
+          <div className="reset-modal" onClick={e => e.stopPropagation()}>
+            <div className="reset-modal-header">
+              <h3 className="reset-modal-title">Şifre Değiştir</h3>
+              <button className="reset-modal-close" onClick={() => setShowPasswordModal(false)}>
+                <FaTimes size={16} />
+              </button>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Mevcut Şifre</label>
+              <div className="input-wrapper">
+                <div className="input-icon">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </div>
+                <input
+                  className="form-input"
+                  type="password"
+                  placeholder="********"
+                  value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Yeni Şifre</label>
+              <div className="input-wrapper">
+                <div className="input-icon">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </div>
+                <input
+                  className="form-input"
+                  type="password"
+                  placeholder="********"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Şifre Tekrar</label>
+              <div className="input-wrapper">
+                <div className="input-icon">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </div>
+                <input
+                  className="form-input"
+                  type="password"
+                  placeholder="********"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                />
+              </div>
+            </div>
+            <button
+              className="login-submit-btn"
+              onClick={handlePasswordChange}
+              disabled={isChangingPassword}
+            >
+              {isChangingPassword ? <><div className="spinner" /> Güncelleniyor...</> : <><FaCheck size={16} /> Şifreyi Güncelle</>}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
