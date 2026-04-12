@@ -1,54 +1,52 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
+import { FaClipboard } from 'react-icons/fa';
+import {
+  IconPlus,
+  IconUsers,
+  IconTrash,
+  IconClock,
+  IconRepeat,
+  IconFileText,
+  IconSearch,
+} from '@tabler/icons-react';
 
-/**
- * FormsListTab.jsx
- * ─────────────────────────────────────────────
- * Form listesi + yeni form oluşturma ekranı.
- * Props:
- *  - newFormTitle / setNewFormTitle
- *  - startDate / setStartDate
- *  - endDate / setEndDate
- *  - isRecurring / setIsRecurring  : Periyodik form toggle
- *  - recurrenceType / setRecurrenceType
- *  - handleCreateTemplate          : POST isteği
- *  - formTemplates                 : Form listesi
- *  - setSelectedForm / setActiveTab: Forma tıklanınca builder'a geç
- *  - handleDeleteTemplate          : Form silme
- *  - api                           : Axios instance
- *  - Ico                           : SVG ikon nesnesi
- * ─────────────────────────────────────────────
- * Ek özellik: "Görev Ata" butonu — seçili forma
- * kullanıcı atama modalını açar.
- */
+const Ico = {
+  plus: <IconPlus size={16} stroke={2.5} />,
+  users: <IconUsers size={14} stroke={2} />,
+  trash: <IconTrash size={16} stroke={2} />,
+  clock: <IconClock size={14} stroke={2} />,
+  repeat: <IconRepeat size={14} stroke={2} />,
+  doc: <IconFileText size={20} stroke={1.8} />,
+  search: <IconSearch size={16} stroke={2} />,
+};
+
 export default function FormsListTab({
   newFormTitle, setNewFormTitle,
-  startDate,    setStartDate,
-  endDate,      setEndDate,
-  isRecurring,  setIsRecurring,
+  startDate, setStartDate,
+  endDate, setEndDate,
+  isRecurring, setIsRecurring,
   recurrenceType, setRecurrenceType,
   handleCreateTemplate,
   formTemplates,
   setSelectedForm, setActiveTab,
   handleDeleteTemplate,
-  api, Ico,
+  api,
 }) {
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [targetForm, setTargetForm]           = useState(null);
-  const [allUsers, setAllUsers]               = useState([]);
+  const [targetForm, setTargetForm] = useState(null);
+  const [allUsers, setAllUsers] = useState([]);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
 
-  /* ── Form durumu hesapla ── */
   const formStatus = (form) => {
     const now = new Date();
     const s = form.startDate ? new Date(form.startDate) : null;
-    const e = form.endDate   ? new Date(form.endDate)   : null;
+    const e = form.endDate ? new Date(form.endDate) : null;
     if (s && now < s) return { label: 'BEKLEMEDE', cls: 'pending' };
-    if (e && now > e) return { label: 'SONA ERDİ',  cls: 'expired' };
+    if (e && now > e) return { label: 'SONA ERDİ', cls: 'expired' };
     return { label: 'AKTİF', cls: 'active' };
   };
 
-  /* ── Atama modalını aç ── */
   const openAssignModal = async (form) => {
     setTargetForm(form);
     try {
@@ -60,20 +58,19 @@ export default function FormsListTab({
     }
   };
 
-  /* ── Görevi ata ── */
   const handleAssign = async () => {
     if (selectedUserIds.length === 0)
-      return toast.error('En az bir kullanıcı seçmelisiniz.');
+      return toast.error('En az bir kullanıcı seçilmelidir.');
     try {
       await api.post('/Form/assign', {
         formTemplateId: targetForm.id,
         userIds: selectedUserIds,
       });
-      toast.success('Görev atandı!');
+      toast.success('Görev başarıyla atandı!');
       setShowAssignModal(false);
       setSelectedUserIds([]);
     } catch {
-      toast.error('Atama başarısız.');
+      toast.error('Görev atama işlemi başarısız.');
     }
   };
 
@@ -83,38 +80,36 @@ export default function FormsListTab({
     );
 
   const recurrenceLabel = (type) =>
-    ({ Daily: 'Her Gün', Weekly: 'Haftalık', Monthly: 'Aylık' }[type] ?? 'Periyodik');
+    ({ Daily: 'Günlük Tekrar', Weekly: 'Haftalık Tekrar', Monthly: 'Aylık Tekrar' }[type] ?? 'Periyodik');
 
   return (
     <div>
-      {/* Başlık */}
       <div className="page-header">
         <div className="page-title">Form Yönetimi</div>
         <div className="page-desc">
-          Yeni form oluşturun veya personellere form atayın.
+          Personel atamaları için form oluşturun ve yönetin.
         </div>
       </div>
 
-      {/* ── Form Oluşturma Kutusu ── */}
       <div className="create-box">
         <div className="create-box-row">
           <input
             className="text-input"
             style={{ flex: 1 }}
             type="text"
-            placeholder="Yeni form adı girin (Örn: Haftalık Rapor)"
+            placeholder="Form adı girin (Örn: Aylık Performans Değerlendirmesi)"
             value={newFormTitle}
             onChange={(e) => setNewFormTitle(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreateTemplate()}
           />
           <button className="primary-btn" onClick={handleCreateTemplate}>
-            {Ico.plus} Oluştur
+            {Ico.plus} Yeni Form Oluştur
           </button>
         </div>
 
         <div className="create-box-meta">
           <div>
-            <span className="field-label">Açılış Tarihi</span>
+            <span className="field-label">Başlangıç Tarihi</span>
             <input
               className="text-input"
               type="datetime-local"
@@ -123,7 +118,7 @@ export default function FormsListTab({
             />
           </div>
           <div>
-            <span className="field-label">Kapanış Tarihi</span>
+            <span className="field-label">Bitiş Tarihi</span>
             <input
               className="text-input"
               type="datetime-local"
@@ -140,7 +135,7 @@ export default function FormsListTab({
               onChange={(e) => setIsRecurring(e.target.checked)}
             />
             <label className="toggle-label" htmlFor="rec">
-              {Ico.repeat} Periyodik
+              {Ico.repeat} Periyodik Form
             </label>
             {isRecurring && (
               <select
@@ -158,7 +153,6 @@ export default function FormsListTab({
         </div>
       </div>
 
-      {/* ── Form Kartları ── */}
       <div className="forms-grid">
         {formTemplates.map((form) => {
           const st = formStatus(form);
@@ -168,7 +162,6 @@ export default function FormsListTab({
               key={form.id}
               onClick={() => { setSelectedForm(form); setActiveTab('builder'); }}
             >
-              {/* Üst satır: ikon + badge + atama butonu */}
               <div className="form-card-top">
                 <div className="form-card-icon">{Ico.doc}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -195,7 +188,6 @@ export default function FormsListTab({
                 </div>
               </div>
 
-              {/* Başlık + Meta */}
               <div>
                 <div className="form-card-title">{form.title}</div>
                 <div className="form-card-meta">
@@ -217,7 +209,6 @@ export default function FormsListTab({
                 </div>
               </div>
 
-              {/* Footer */}
               <div className="form-card-footer">
                 <button className="form-card-action">Yönet →</button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -250,18 +241,17 @@ export default function FormsListTab({
             borderRadius: 'var(--radius-lg)',
             border: '1px solid var(--border)',
           }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+            <FaClipboard style={{ fontSize: 40, marginBottom: 12 }} />
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-2)' }}>
               Henüz form oluşturulmadı
             </div>
             <div style={{ fontSize: 12, marginTop: 6 }}>
-              Yukarıdaki alandan ilk formunuzu oluşturun.
+              Yukarıdan yeni bir form oluşturarak başlayın.
             </div>
           </div>
         )}
       </div>
 
-      {/* ── Atama Modalı ── */}
       {showAssignModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0,
@@ -272,13 +262,13 @@ export default function FormsListTab({
         }}>
           <div style={{
             background: 'var(--surface)',
-            width: 400,
+            width: 420,
             borderRadius: 'var(--radius-xl)',
             padding: 'var(--space-6)',
             border: '1px solid var(--border)',
           }}>
             <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-1)', marginBottom: 16 }}>
-              Personel Görevlendir
+              Personel Görevlendirme
             </div>
             <div style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 20 }}>
               {allUsers.map((user) => (
@@ -300,7 +290,7 @@ export default function FormsListTab({
                   }}
                 >
                   <div style={{
-                    width: 18, height: 18,
+                    width: 20, height: 20,
                     border: `2px solid var(--accent)`,
                     borderRadius: 'var(--radius-sm)',
                     background: selectedUserIds.includes(user.id) ? 'var(--accent)' : 'transparent',
@@ -325,7 +315,7 @@ export default function FormsListTab({
                   fontFamily: 'var(--font-sans)', fontWeight: 600,
                 }}
               >
-                Vazgeç
+                İptal
               </button>
               <button
                 onClick={handleAssign}
@@ -336,7 +326,7 @@ export default function FormsListTab({
                   fontFamily: 'var(--font-sans)',
                 }}
               >
-                Ata
+                Görevlendir
               </button>
             </div>
           </div>

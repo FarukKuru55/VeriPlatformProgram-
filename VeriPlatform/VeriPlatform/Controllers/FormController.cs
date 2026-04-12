@@ -5,6 +5,10 @@ using VeriPlatform.Entities;
 using VeriPlatform.Data;
 using System.Text.Json;
 using System.Security.Claims;
+using System.Globalization;
+using ClosedXML.Excel;
+using CsvHelper;
+using CsvHelper.Configuration;
 
 namespace VeriPlatform.Controllers;
 
@@ -241,17 +245,182 @@ public class FormController : ControllerBase
             .Where(x => x.Total > 0)
             .ToListAsync();
 
+        var submissionsByStatus = await _db.Submissions
+            .GroupBy(s => s.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var rawSubmissionsByDate = await _db.Submissions
+            .Where(s => s.SubmittedAt >= now.AddDays(-30))
+            .GroupBy(s => s.SubmittedAt.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .ToListAsync();
+        var submissionsByDate = rawSubmissionsByDate
+            .OrderBy(x => x.Date)
+            .Select(x => new { Date = x.Date.ToString("yyyy-MM-dd"), x.Count })
+            .ToList();
+
+        var formStatusBreakdown = await _db.FormTemplates
+            .Select(t => new {
+                Title = t.Title,
+                Active = (t.StartDate == null || t.StartDate <= now) && (t.EndDate == null || t.EndDate >= now),
+                Submissions = t.Submissions.Count,
+                Questions = _db.Questions.Count(q => q.FormTemplateId == t.Id)
+            })
+            .ToListAsync();
+
+        var rawDailySubmissions = await _db.Submissions
+            .Where(s => s.SubmittedAt >= now.AddDays(-7))
+            .GroupBy(s => s.SubmittedAt.Date)
+            .Select(g => new { Date = g.Key, Basvuru = g.Count() })
+            .ToListAsync();
+
+        var dailySubmissions = rawDailySubmissions
+            .Select(x => new { Name = x.Date.ToString("dd MMM"), x.Basvuru })
+            .ToList();
+
         return Ok(new
         {
             totalForms = await _db.FormTemplates.CountAsync(),
             totalSubmissions = await _db.Submissions.CountAsync(),
+            totalUsers = await _db.Users.CountAsync(),
             activeForms = await _db.FormTemplates.CountAsync(t => (t.StartDate == null || t.StartDate <= now) && (t.EndDate == null || t.EndDate >= now)),
-            dailySubmissions = await _db.Submissions.Where(s => s.SubmittedAt >= now.AddDays(-7)).GroupBy(s => s.SubmittedAt.Date).Select(g => new { Name = g.Key.ToString("dd MMM"), Basvuru = g.Count() }).ToListAsync(),
+            expiredForms = await _db.FormTemplates.CountAsync(t => t.EndDate != null && t.EndDate < now),
+            pendingForms = await _db.FormTemplates.CountAsync(t => t.StartDate != null && t.StartDate > now),
+            dailySubmissions,
             topForms = await _db.FormTemplates.Select(t => new { Name = t.Title, Basvuru = t.Submissions.Count }).OrderByDescending(x => x.Basvuru).Take(5).ToListAsync(),
             totalAssignments,
             completedAssignments,
+            pendingAssignments = totalAssignments - completedAssignments,
+            completionRate = totalAssignments > 0 ? Math.Round((double)completedAssignments / totalAssignments * 100, 1) : 0,
+            submissionsByStatus,
+            submissionsByDate,
+            formStatusBreakdown,
             userPerformance
         });
+    }
+
+    // --- 6. EXPORT ---
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ExportData([FromQuery] string format = "xlsx")
+    {
+        var submissions = await _db.Submissions
+            .Include(s => s.FormTemplate)
+            .OrderByDescending(s => s.SubmittedAt)
+            .ToListAsync();
+
+        var questions = await _db.Questions.ToListAsync();
+
+        if (format.ToLower() == "csv")
+        {
+            var csvData = submissions.Select(s => {
+                var answers = new Dictionary<string, string>();
+                try {
+                    var parsed = JsonSerializer.Deserialize<Dictionary<string, object>>(s.AnswersJson);
+                    if (parsed != null) {
+                        foreach (var q in questions.Where(q => q.FormTemplateId == s.FormTemplateId)) {
+                            var key = q.Id.ToString();
+                            answers[$"Soru_{q.Order}"] = parsed.ContainsKey(key) ? parsed[key]?.ToString() ?? "" : "";
+                        }
+                    }
+                } catch { }
+
+                var baseDict = new Dictionary<string, object> {
+                    { "YanitID", s.Id },
+                    { "FormAdi", s.FormTemplate?.Title ?? "Bilinmeyen" },
+                    { "Tarih", s.SubmittedAt.ToString("yyyy-MM-dd HH:mm:ss") },
+                    { "Durum", s.Status },
+                    { "YoneticiNotu", s.AdminNote ?? "" }
+                };
+
+                foreach (var ans in answers) {
+                    baseDict[ans.Key] = ans.Value;
+                }
+
+                return baseDict;
+            }).ToList();
+
+            using var memoryStream = new MemoryStream();
+            using var writer = new StreamWriter(memoryStream);
+            using var csv = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture));
+            
+            if (csvData.Any()) {
+                foreach (var header in csvData.First().Keys) {
+                    csv.WriteField(header);
+                }
+                csv.NextRecord();
+                
+                foreach (var row in csvData) {
+                    foreach (var value in row.Values) {
+                        csv.WriteField(value?.ToString() ?? "");
+                    }
+                    csv.NextRecord();
+                }
+            }
+            
+            writer.Flush();
+            return File(memoryStream.ToArray(), "text/csv", $"veri_yanitlari_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
+        }
+
+        var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Yanıtlar");
+
+        ws.Cell(1, 1).Value = "Yanıt ID";
+        ws.Cell(1, 2).Value = "Form Adı";
+        ws.Cell(1, 3).Value = "Tarih";
+        ws.Cell(1, 4).Value = "Durum";
+        ws.Cell(1, 5).Value = "Yönetici Notu";
+
+        var headers = new List<string> { "Yanıt ID", "Form Adı", "Tarih", "Durum", "Yönetici Notu" };
+        var qIndex = 6;
+
+        var templateIds = submissions.Select(s => s.FormTemplateId).Distinct().ToList();
+        foreach (var templateId in templateIds) {
+            var templateQuestions = questions.Where(q => q.FormTemplateId == templateId).OrderBy(q => q.Order).ToList();
+            foreach (var q in templateQuestions) {
+                var colHeader = $"Soru_{q.Order}";
+                ws.Cell(1, qIndex).Value = colHeader;
+                headers.Add(colHeader);
+                qIndex++;
+            }
+            if (templateQuestions.Any()) break;
+        }
+
+        ws.Range(1, 1, 1, headers.Count).Style.Font.Bold = true;
+        ws.Range(1, 1, 1, headers.Count).Style.Fill.BackgroundColor = XLColor.LightGray;
+        ws.Range(1, 1, 1, headers.Count).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+        var rowNum = 2;
+        foreach (var s in submissions) {
+            ws.Cell(rowNum, 1).Value = s.Id;
+            ws.Cell(rowNum, 2).Value = s.FormTemplate?.Title ?? "Bilinmeyen";
+            ws.Cell(rowNum, 3).Value = s.SubmittedAt.ToString("yyyy-MM-dd HH:mm:ss");
+            ws.Cell(rowNum, 4).Value = s.Status;
+            ws.Cell(rowNum, 5).Value = s.AdminNote ?? "";
+
+            try {
+                var parsed = JsonSerializer.Deserialize<Dictionary<string, object>>(s.AnswersJson);
+                if (parsed != null) {
+                    var col = 6;
+                    var templateQuestions = questions.Where(q => q.FormTemplateId == s.FormTemplateId).OrderBy(q => q.Order).ToList();
+                    foreach (var q in templateQuestions) {
+                        var key = q.Id.ToString();
+                        var val = parsed.ContainsKey(key) ? parsed[key]?.ToString() ?? "" : "";
+                        ws.Cell(rowNum, col).Value = val;
+                        col++;
+                    }
+                }
+            } catch { }
+
+            rowNum++;
+        }
+
+        ws.Columns().AdjustToContents();
+        
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        return File(ms.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"veri_yanitlari_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx");
     }
 
     [HttpPost("upload")]

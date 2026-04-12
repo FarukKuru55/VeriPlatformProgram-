@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaFileAlt, FaInbox } from 'react-icons/fa';
 
 /**
  * ResponsesTab.jsx
@@ -69,7 +70,7 @@ export default function ResponsesTab({
                 border: '1px solid rgba(79,142,247,0.2)',
               }}
             >
-              📁 Dosyayı Aç
+              <FaFileAlt /> Dosyayı Aç
             </a>
           );
         } else if (Array.isArray(value)) {
@@ -90,7 +91,7 @@ export default function ResponsesTab({
         );
       });
     } catch {
-      return <span style={{ color: 'var(--red)', fontSize: 12 }}>Veri okunamadı.</span>;
+      return <span style={{ color: 'var(--red)', fontSize: 12 }}>Veri işlenemedi.</span>;
     }
   };
 
@@ -109,13 +110,13 @@ export default function ResponsesTab({
           <span style={{ color: 'var(--text-1)', fontFamily: 'var(--font-mono)', fontSize: 16 }}>
             {filtered.length}
           </span>{' '}
-          kayıt
+          kayıt bulundu
         </div>
         <div className="responses-search">
           <div className="responses-search-icon">{Ico.search}</div>
           <input
             type="text"
-            placeholder="Yanıt veya ID ara..."
+            placeholder="Yanıt veya kayıt numarası ara..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -127,11 +128,11 @@ export default function ResponsesTab({
         <table className="responses-table">
           <thead className="rt-head">
             <tr>
-              <th className="rt-th">Kayıt</th>
-              <th className="rt-th">Yanıtlar</th>
+              <th className="rt-th">Kayıt No</th>
+              <th className="rt-th">Yanıt Bilgileri</th>
               <th className="rt-th">Durum</th>
-              <th className="rt-th">Yönetici Notu</th>
-              <th className="rt-th">İşlem</th>
+              <th className="rt-th">Yönetici Açıklaması</th>
+              <th className="rt-th">İşlemler</th>
             </tr>
           </thead>
           <tbody>
@@ -164,9 +165,9 @@ export default function ResponsesTab({
                       onChange={(e) => handleSubmissionChange(s.id, 'status', e.target.value)}
                       style={statusStyle(s.status)}
                     >
-                      <option value="Yeni">🔴 Yeni</option>
-                      <option value="İşlemde">🟡 İşlemde</option>
-                      <option value="Tamamlandı">🟢 Tamamlandı</option>
+                      <option value="Yeni">● Yeni</option>
+                      <option value="İşlemde">● İşlemde</option>
+                      <option value="Tamamlandı">● Tamamlandı</option>
                     </select>
                   </td>
 
@@ -174,7 +175,7 @@ export default function ResponsesTab({
                   <td className="rt-td">
                     <textarea
                       className="note-textarea"
-                      placeholder="Not ekle..."
+                      placeholder="Açıklama ekleyiniz..."
                       value={s.adminNote || ''}
                       onChange={(e) => handleSubmissionChange(s.id, 'adminNote', e.target.value)}
                     />
@@ -186,7 +187,7 @@ export default function ResponsesTab({
                       className="save-btn"
                       onClick={() => handleUpdateSubmission(s.id, s.status, s.adminNote)}
                     >
-                      Kaydet
+                      Güncelle
                     </button>
                   </td>
                 </tr>
@@ -197,10 +198,10 @@ export default function ResponsesTab({
                   colSpan="5"
                   style={{ padding: '60px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}
                 >
-                  <div style={{ fontSize: 32, marginBottom: 10 }}>📭</div>
+                  <FaInbox style={{ fontSize: 32, marginBottom: 10 }} />
                   {searchQuery
                     ? 'Arama kriterine uygun kayıt bulunamadı.'
-                    : 'Bu form için henüz yanıt yok.'}
+                    : 'Bu form için henüz yanıt alınmamıştır.'}
                 </td>
               </tr>
             )}

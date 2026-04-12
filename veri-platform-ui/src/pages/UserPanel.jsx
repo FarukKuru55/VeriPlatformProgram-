@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { jwtDecode } from 'jwt-decode';
+import { FaInbox, FaClipboard, FaFileAlt, FaCheckCircle } from 'react-icons/fa';
 import './userpanel.css';
 
 /* ─── İkonlar ─── */
@@ -27,7 +28,7 @@ const UserTasks = ({ tasks, handleSelectForm }) => {
   if (tasks.length === 0) {
     return (
       <div className="no-tasks">
-        <div className="no-tasks-icon">📭</div>
+        <FaInbox className="no-tasks-icon" />
         <div className="no-tasks-title">Atanmış göreviniz bulunmuyor</div>
         <div className="no-tasks-desc">Yöneticiniz size bir form atadığında burada görünecek.</div>
       </div>
@@ -40,7 +41,7 @@ const UserTasks = ({ tasks, handleSelectForm }) => {
         const dl = getDeadlineStatus(task.endDate);
         return (
           <div key={task.id} className="task-card" onClick={() => handleSelectForm(task)}>
-            <div className="task-icon">📋</div>
+            <div className="task-icon"><FaClipboard /></div>
             <div className="task-content">
               <div className="task-title">{task.title}</div>
               <div className="task-date">
@@ -224,7 +225,7 @@ export default function UserPanel() {
             <label className="file-upload-area">
               <input type="file" style={{ display: 'none' }}
                 onChange={e => handleFileUpload(q.id, e.target.files[0])} />
-              <div className="file-upload-icon">📁</div>
+              <div className="file-upload-icon"><FaFileAlt /></div>
               <div className="file-upload-text">
                 {answers[q.id] ? 'Dosyayı Değiştir' : 'Dosya seçmek için tıklayın'}
               </div>
@@ -232,7 +233,7 @@ export default function UserPanel() {
             </label>
             {answers[q.id] && (
               <div className="file-success">
-                <span>✅</span> Yüklendi —{' '}
+                <FaCheckCircle style={{ marginRight: 4 }} /> Yüklendi —{' '}
                 <a href={answers[q.id]} target="_blank" rel="noreferrer">Görüntüle</a>
               </div>
             )}
@@ -320,7 +321,7 @@ export default function UserPanel() {
 
             {questions.length === 0 ? (
               <div className="no-tasks">
-                <div className="no-tasks-icon">📝</div>
+                <div className="no-tasks-icon"><FaClipboard /></div>
                 <div className="no-tasks-title">Bu formda henüz soru yok</div>
                 <div className="no-tasks-desc">Yönetici soru ekledikten sonra burada görünecek.</div>
               </div>

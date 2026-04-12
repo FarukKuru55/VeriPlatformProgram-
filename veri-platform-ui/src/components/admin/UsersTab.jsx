@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
+import { FaCrown, FaUser } from 'react-icons/fa';
 
 /**
  * UsersTab.jsx
@@ -36,29 +37,29 @@ export default function UsersTab({ api, Ico }) {
 
   const handleRegister = async () => {
     if (!regUsername.trim() || !regPassword.trim())
-      return toast.error('Tüm alanları doldurun.');
+      return toast.error('Lütfen tüm alanları doldurunuz.');
     try {
       const res = await api.post('/Auth/register', {
         username: regUsername,
         password: regPassword,
       });
-      toast.success(res.data?.message ?? 'Kayıt başarılı.');
+      toast.success(res.data?.message ?? 'Kullanıcı başarıyla oluşturuldu.');
       setRegUsername('');
       setRegPassword('');
       fetchUsers();
     } catch (err) {
       const msg = err.response?.data;
-      toast.error(typeof msg === 'string' ? msg : 'İşlem başarısız.');
+      toast.error(typeof msg === 'string' ? msg : 'İşlem başarısız oldu.');
     }
   };
 
   const handleToggleAdmin = async (id) => {
     try {
       const res = await api.put(`/Auth/users/${id}/toggle-admin`);
-      toast.success(res.data?.message ?? 'Yetki güncellendi.');
+      toast.success(res.data?.message ?? 'Yetki başarıyla güncellendi.');
       fetchUsers();
     } catch (err) {
-      toast.error(err.response?.data ?? 'Yetki işlemi başarısız.');
+      toast.error(err.response?.data ?? 'Yetki güncellenemedi.');
     }
   };
 
@@ -67,8 +68,8 @@ export default function UsersTab({ api, Ico }) {
       background: '#1e2330',
       color: '#f0f2f8',
       showCancelButton: true,
-      title: `${username} silinsin mi?`,
-      text: 'Bu işlem geri alınamaz!',
+      title: `${username} kullanıcısı silinsin mi?`,
+      text: 'Bu işlem geri alınamaz.',
       icon: 'warning',
       confirmButtonColor: '#f87171',
       cancelButtonColor: '#242938',
@@ -78,10 +79,10 @@ export default function UsersTab({ api, Ico }) {
     if (!r.isConfirmed) return;
     try {
       await api.delete(`/Auth/users/${id}`);
-      toast.success('Kullanıcı silindi.');
+      toast.success('Kullanıcı başarıyla silindi.');
       fetchUsers();
     } catch (err) {
-      toast.error(err.response?.data ?? 'Silme başarısız.');
+      toast.error(err.response?.data ?? 'Kullanıcı silinemedi.');
     }
   };
 
@@ -118,10 +119,10 @@ export default function UsersTab({ api, Ico }) {
             {Ico.shield}
           </div>
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-1)' }}>
-            Personel Yetkilendir
+            Yeni Kullanıcı Oluştur
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--text-3)', marginTop: 5 }}>
-            Sisteme yeni giriş izni verin.
+            Yeni kullanıcı hesabı oluşturunuz.
           </div>
         </div>
 
@@ -132,7 +133,7 @@ export default function UsersTab({ api, Ico }) {
             <input
               className="text-input"
               type="text"
-              placeholder="kullanici_adi"
+              placeholder="kullanıcı_adı"
               value={regUsername}
               onChange={(e) => setRegUsername(e.target.value)}
             />
@@ -148,7 +149,7 @@ export default function UsersTab({ api, Ico }) {
             />
           </div>
           <button className="authorize-btn" onClick={handleRegister}>
-            Oluştur ve Kaydet
+            Oluştur
           </button>
         </div>
       </div>
@@ -161,20 +162,20 @@ export default function UsersTab({ api, Ico }) {
         border: '1px solid var(--border)',
         padding: 'var(--space-6)',
       }}>
-        <div style={{
-          fontSize: 17,
-          fontWeight: 700,
-          color: 'var(--text-1)',
-          marginBottom: 'var(--space-5)',
-        }}>
-          Sistemdeki Kullanıcılar ({users.length})
-        </div>
+          <div style={{
+            fontSize: 17,
+            fontWeight: 700,
+            color: 'var(--text-1)',
+            marginBottom: 'var(--space-5)',
+          }}>
+            Mevcut Kullanıcılar ({users.length})
+          </div>
 
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr>
-                {['ID', 'KULLANICI ADI', 'ROLÜ', 'İŞLEMLER'].map((h, i) => (
+                {['ID', 'KULLANICI ADI', 'YETKİ DÜZEYİ', 'İŞLEMLER'].map((h, i) => (
                   <th
                     key={i}
                     style={{
@@ -223,7 +224,7 @@ export default function UsersTab({ api, Ico }) {
                         fontWeight: 700,
                         fontFamily: 'var(--font-mono)',
                       }}>
-                        👑 ADMIN
+                        <FaCrown style={{ marginRight: 4 }} /> ADMIN
                       </span>
                     ) : (
                       <span style={{
@@ -235,7 +236,7 @@ export default function UsersTab({ api, Ico }) {
                         fontWeight: 600,
                         fontFamily: 'var(--font-mono)',
                       }}>
-                        👤 PERSONEL
+                        <FaUser style={{ marginRight: 4 }} /> KULLANICI
                       </span>
                     )}
                   </td>
@@ -256,7 +257,7 @@ export default function UsersTab({ api, Ico }) {
                           transition: 'all 0.15s',
                         }}
                       >
-                        {user.isAdmin ? 'Yetkiyi Al' : 'Admin Yap'}
+                        {user.isAdmin ? 'Yetkisini Kaldır' : 'Admin Yap'}
                       </button>
                       <button
                         onClick={() => handleDeleteUser(user.id, user.username)}
@@ -286,7 +287,7 @@ export default function UsersTab({ api, Ico }) {
                     colSpan="4"
                     style={{ textAlign: 'center', padding: '40px', color: 'var(--text-3)', fontSize: 13 }}
                   >
-                    Kayıtlı kullanıcı bulunamadı.
+                    Henüz kayıtlı kullanıcı bulunmamaktadır.
                   </td>
                 </tr>
               )}

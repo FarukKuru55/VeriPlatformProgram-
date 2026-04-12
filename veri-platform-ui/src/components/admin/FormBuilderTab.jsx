@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableItem from '../SortableItem';
+import { FaClipboardList } from 'react-icons/fa';
 
 /**
  * FormBuilderTab.jsx
@@ -72,7 +73,7 @@ export default function FormBuilderTab({
     try {
       const res = await api.post('/Form/upload', formData);
       setImageUrl(res.data.url);
-      toast.success('Görsel yüklendi!');
+      toast.success('Görsel başarıyla yüklendi.');
     } catch {
       toast.error('Görsel yüklenemedi.');
     }
@@ -80,7 +81,7 @@ export default function FormBuilderTab({
 
   /* ── Kaydet / Güncelle ── */
   const handleSaveQuestion = async () => {
-    if (!newQuestionText.trim()) return toast.error('Soru metni boş olamaz!');
+    if (!newQuestionText.trim()) return toast.error('Soru metni girilmesi zorunludur.');
 
     const payload = {
       formTemplateId: selectedForm.id,
@@ -97,27 +98,27 @@ export default function FormBuilderTab({
     try {
       if (editingQuestionId) {
         await api.put(`/Form/questions/${editingQuestionId}`, payload);
-        toast.success('Soru güncellendi!');
+        toast.success('Soru başarıyla güncellendi.');
       } else {
         await api.post(`/Form/templates/${selectedForm.id}/questions`, payload);
-        toast.success('Soru eklendi!');
+        toast.success('Soru başarıyla eklendi.');
       }
       resetForm();
       fetchQuestions();
     } catch {
-      toast.error('Hata oluştu!');
+      toast.error('İşlem sırasında bir hata oluştu.');
     }
   };
 
   /* ── Sil ── */
   const handleDeleteQuestion = async (id) => {
-    if (!window.confirm('Bu soruyu silmek istiyor musunuz?')) return;
+    if (!window.confirm('Bu soruyu silmek istediğinizden emin misiniz?')) return;
     try {
       await api.delete(`/Form/questions/${id}`);
-      toast.success('Silindi.');
+      toast.success('Soru başarıyla silindi.');
       fetchQuestions();
     } catch {
-      toast.error('Silinemedi.');
+      toast.error('Soru silinemedi.');
     }
   };
 
@@ -134,7 +135,7 @@ export default function FormBuilderTab({
     try {
       await api.put('/Form/questions/reorder', ordered.map((q) => q.id));
     } catch {
-      toast.error('Sıralama kaydedilemedi.');
+      toast.error('Sıralama güncellenemedi.');
     }
   };
 
@@ -155,7 +156,7 @@ export default function FormBuilderTab({
             <path d="M12 5v14M5 12h14"/>
           </svg>
           <div className="panel-card-title">
-            {editingQuestionId ? 'Soruyu Düzenle' : 'Yeni Soru Ekle'}
+            {editingQuestionId ? 'Soruyu Güncelle' : 'Yeni Soru Oluştur'}
           </div>
         </div>
 
@@ -167,7 +168,7 @@ export default function FormBuilderTab({
             <input
               className="text-input"
               type="text"
-              placeholder="Soruyu buraya yazın..."
+              placeholder="Sorunuzu buraya yazınız..."
               value={newQuestionText}
               onChange={(e) => setNewQuestionText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSaveQuestion()}
@@ -176,19 +177,19 @@ export default function FormBuilderTab({
 
           {/* Cevap Tipi */}
           <div>
-            <span className="field-label">Cevap Tipi</span>
+            <span className="field-label">Yanıt Türü</span>
             <select
               className="field-select"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
             >
-              <option value="text">Kısa Metin</option>
-              <option value="number">Sayı / Rakam</option>
-              <option value="date">Tarih Seçici</option>
-              <option value="radio">Tekli Seçim (Radyo)</option>
-              <option value="checkbox">Çoklu Seçim (Checkbox)</option>
-              <option value="image">Resim Yükleme (Personel için)</option>
-              <option value="file">Dosya Yükleme (Personel için)</option>
+              <option value="text">Kısa Yanıt</option>
+              <option value="number">Sayısal Yanıt</option>
+              <option value="date">Tarih Seçimi</option>
+              <option value="radio">Tek Seçim</option>
+              <option value="checkbox">Çoklu Seçim</option>
+              <option value="image">Görsel Yükleme</option>
+              <option value="file">Belge Yükleme</option>
             </select>
           </div>
 
@@ -202,13 +203,13 @@ export default function FormBuilderTab({
               onChange={(e) => setIsRequired(e.target.checked)}
             />
             <label className="toggle-label" htmlFor="isRequired">
-              Bu soru zorunlu olsun
+              Yanıt zorunludur
             </label>
           </div>
 
           {/* Soru Görseli */}
           <div className="options-area">
-            <span className="field-label">Soru Görseli (opsiyonel)</span>
+            <span className="field-label">Soru Görseli (İsteğe Bağlı)</span>
             <input
               type="file"
               accept="image/*"
@@ -232,13 +233,13 @@ export default function FormBuilderTab({
           {/* Radio / Checkbox Şıkları */}
           {(selectedType === 'radio' || selectedType === 'checkbox') && (
             <div className="options-area">
-              <span className="field-label">Seçenek Şıkları</span>
+              <span className="field-label">Seçenekler</span>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   className="text-input"
                   style={{ flex: 1 }}
                   type="text"
-                  placeholder="Şık girin..."
+                  placeholder="Seçenek giriniz..."
                   value={currentOption}
                   onChange={(e) => setCurrentOption(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addOption()}
@@ -300,21 +301,21 @@ export default function FormBuilderTab({
           <svg width="16" height="16" fill="none" stroke="var(--accent)" strokeWidth="2" viewBox="0 0 24 24">
             <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
           </svg>
-          <div className="panel-card-title">Form İskeleti</div>
+          <div className="panel-card-title">Form Taslağı</div>
           <span style={{
             marginLeft: 'auto',
             fontSize: 11,
             color: 'var(--text-3)',
             fontFamily: 'var(--font-mono)',
           }}>
-            sürükle & bırak
+            Sıralamayı değiştirmek için sürükleyin
           </span>
         </div>
 
         {questions.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">📝</div>
-            <div className="empty-text">Henüz soru eklenmedi</div>
+            <FaClipboardList className="empty-icon" />
+            <div className="empty-text">Henüz soru oluşturulmadı</div>
           </div>
         ) : (
           <div className="sortable-list">

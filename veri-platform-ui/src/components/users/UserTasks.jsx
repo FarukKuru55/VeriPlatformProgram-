@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaInbox } from 'react-icons/fa';
 
 /**
  * UserTasks.jsx
@@ -65,7 +66,7 @@ export default function UserTasks({ tasks, handleSelectForm }) {
       <div className="tasks-grid">
         {tasks.length === 0 ? (
           <div className="no-tasks">
-            <div className="no-tasks-icon">📭</div>
+            <FaInbox className="no-tasks-icon" />
             <div className="no-tasks-title">Atanmış göreviniz bulunmuyor</div>
             <div className="no-tasks-desc">
               Yöneticiniz size bir form atadığında burada görünecek.
