@@ -5,6 +5,23 @@ import { jwtDecode } from 'jwt-decode';
 import { FaInbox, FaClipboard, FaFileAlt, FaCheckCircle } from 'react-icons/fa';
 import './userpanel.css';
 
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/';
+    }
+    return Promise.reject(error);
+  }
+);
+
 /* ─── İkonlar ─── */
 const BackIcon   = () => <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>;
 const ArrowIcon  = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>;
@@ -78,11 +95,8 @@ export default function UserPanel() {
   }, []);
 
   const fetchMyTasks = useCallback(async () => {
-    const token = localStorage.getItem('token');
     try {
-      const res = await axios.get('http://localhost:5062/api/Form/my-tasks', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.get('http://localhost:5062/api/Form/my-tasks');
       setTasks(res.data);
     } catch { toast.error('Görev listeniz yüklenemedi.'); }
   }, []);
@@ -140,12 +154,10 @@ export default function UserPanel() {
     if (Object.keys(answers).length === 0)
       return toast.error('Lütfen en az bir soruyu cevaplayın.');
 
-    const token = localStorage.getItem('token');
     try {
       await axios.post(
         `http://localhost:5062/api/Form/templates/${selectedFormId}/submit`,
-        answers,
-        { headers: { Authorization: `Bearer ${token}` } }
+        answers
       );
       toast.success('Yanıtlarınız başarıyla kaydedildi!');
       setAnswers({});

@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using VeriPlatform.Entities;
 using VeriPlatform.Data;
+using VeriPlatform.Hubs;
 using System.Text.Json;
 using System.Security.Claims;
 using System.Globalization;
@@ -17,7 +19,12 @@ namespace VeriPlatform.Controllers;
 public class FormController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public FormController(AppDbContext db) => _db = db;
+    private readonly IHubContext<NotificationHub> _hubContext;
+    public FormController(AppDbContext db, IHubContext<NotificationHub> hubContext) 
+    { 
+        _db = db; 
+        _hubContext = hubContext;
+    }
 
     // --- 1. FORM ŞABLONU İŞLEMLERİ ---
     [HttpGet("templates")]
@@ -193,14 +200,31 @@ public class FormController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> AssignForm([FromBody] AssignDto dto)
     {
+        if (dto.FormTemplateId <= 0)
+            return BadRequest("Geçersiz FormTemplateId: " + dto.FormTemplateId);
+        
+        if (dto.UserIds == null || !dto.UserIds.Any())
+            return BadRequest("UserIds boş veya null");
+
+        var formExists = await _db.FormTemplates.AnyAsync(t => t.Id == dto.FormTemplateId);
+        if (!formExists)
+            return BadRequest("FormTemplate bulunamadı");
+
         foreach (var userId in dto.UserIds)
         {
+            if (userId <= 0) continue;
+
+            var userExists = await _db.Users.AnyAsync(u => u.Id == userId);
+            if (!userExists) continue;
+
             var exists = await _db.FormAssignments.AnyAsync(fa => fa.UserId == userId && fa.FormTemplateId == dto.FormTemplateId);
             if (!exists)
             {
-                _db.FormAssignments.Add(new FormAssignment { UserId = userId, FormTemplateId = dto.FormTemplateId });
+                var assignment = new FormAssignment { UserId = userId, FormTemplateId = dto.FormTemplateId };
+                _db.FormAssignments.Add(assignment);
             }
         }
+        
         await _db.SaveChangesAsync();
         return Ok(new { message = "Atama başarılı." });
     }
@@ -210,20 +234,52 @@ public class FormController : ControllerBase
     public async Task<IActionResult> GetMyTasks()
     {
         var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();
+        
+        if (string.IsNullOrEmpty(userIdStr))
+            return Unauthorized("Token'da userId bulunamadı");
 
-        var tasks = await _db.FormAssignments
+        if (!int.TryParse(userIdStr, out int userId)) 
+            return Unauthorized("Geçersiz userId: " + userIdStr);
+
+        var allAssignments = await _db.FormAssignments.ToListAsync();
+        var userAssignments = allAssignments.Where(fa => fa.UserId == userId).ToList();
+
+        var assignments = await _db.FormAssignments
             .Where(fa => fa.UserId == userId && !fa.IsCompleted)
             .Include(fa => fa.FormTemplate)
+            .ToListAsync();
+
+        var tasks = assignments
+            .Where(fa => fa.FormTemplate != null)
             .Select(fa => new {
                 fa.Id,
                 fa.FormTemplateId,
-                fa.FormTemplate.Title,
+                fa.FormTemplate!.Title,
                 fa.AssignedAt,
                 fa.FormTemplate.EndDate
-            }).ToListAsync();
+            }).ToList();
 
         return Ok(tasks);
+    }
+
+    [HttpGet("debug/assignments")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllAssignments()
+    {
+        var assignments = await _db.FormAssignments
+            .Include(fa => fa.FormTemplate)
+            .Include(fa => fa.User)
+            .ToListAsync();
+        
+        return Ok(assignments.Select(a => new {
+            a.Id,
+            a.UserId,
+            Username = a.User?.Username,
+            a.FormTemplateId,
+            FormTitle = a.FormTemplate?.Title,
+            a.IsCompleted,
+            a.AssignedAt
+        }));
     }
 
     // --- 5. DASHBOARD & STATS ---
@@ -434,6 +490,76 @@ public class FormController : ControllerBase
         using (var stream = new FileStream(path, FileMode.Create)) { await file.CopyToAsync(stream); }
         return Ok(new { url = $"http://localhost:5062/uploads/{Path.GetFileName(path)}" });
     }
+
+    // --- 7. AÇIK FORM PAYLAŞIMI ---
+    [HttpPost("templates/{id}/share")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GenerateShareLink(int id)
+    {
+        var form = await _db.FormTemplates.FindAsync(id);
+        if (form == null) return NotFound();
+
+        if (string.IsNullOrEmpty(form.ShareSlug))
+        {
+            form.ShareSlug = Guid.NewGuid().ToString("N");
+            await _db.SaveChangesAsync();
+        }
+
+        return Ok(new { slug = form.ShareSlug, url = $"http://localhost:5173/f/{form.ShareSlug}" });
+    }
+
+    [HttpGet("public/{slug}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPublicForm(string slug)
+    {
+        var form = await _db.FormTemplates
+            .Where(t => t.ShareSlug == slug)
+            .FirstOrDefaultAsync();
+
+        if (form == null) return NotFound(new { message = "Form bulunamadı." });
+
+        var questions = await _db.Questions
+            .Where(q => q.FormTemplateId == form.Id)
+            .OrderBy(q => q.Order)
+            .ToListAsync();
+
+        return Ok(new {
+            form.Id,
+            form.Title,
+            form.Description,
+            Questions = questions
+        });
+    }
+
+    [HttpPost("public/submit")]
+    [AllowAnonymous]
+    public async Task<IActionResult> SubmitPublicForm([FromBody] PublicSubmitDto dto)
+    {
+        var form = await _db.FormTemplates
+            .Where(t => t.ShareSlug == dto.Slug)
+            .FirstOrDefaultAsync();
+
+        if (form == null) return NotFound(new { message = "Form bulunamadı." });
+
+        var submission = new Submission
+        {
+            FormTemplateId = form.Id,
+            AnswersJson = JsonSerializer.Serialize(dto.Answers),
+            SubmittedAt = DateTime.UtcNow
+        };
+        _db.Submissions.Add(submission);
+        await _db.SaveChangesAsync();
+
+        await _hubContext.Clients.All.SendAsync("ReceiveNotification", new
+        {
+            type = "new_submission",
+            formTitle = form.Title,
+            submissionId = submission.Id,
+            submittedAt = submission.SubmittedAt
+        });
+
+        return Ok(new { message = "Teşekkürler, yanıtınız alındı!" });
+    }
 }
 
 // 🚀 DTO SINIFLARI GÜNCELLENDİ
@@ -456,4 +582,10 @@ public class AssignDto
 {
     public int FormTemplateId { get; set; }
     public List<int> UserIds { get; set; } = new();
+}
+
+public class PublicSubmitDto
+{
+    public string Slug { get; set; } = "";
+    public Dictionary<string, object> Answers { get; set; } = new();
 }

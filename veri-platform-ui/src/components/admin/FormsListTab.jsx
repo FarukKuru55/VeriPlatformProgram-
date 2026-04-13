@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import { FaClipboard, FaPencilAlt, FaTrash, FaPlus, FaCheck, FaClock, FaUser, FaUsers, FaFileAlt, FaSearch } from 'react-icons/fa';
+import { FaClipboard, FaPencilAlt, FaTrash, FaPlus, FaCheck, FaClock, FaUser, FaUsers, FaFileAlt, FaSearch, FaShareAlt } from 'react-icons/fa';
+import { QRCodeCanvas } from 'qrcode.react';
 import {
   IconPlus,
   IconUsers,
@@ -44,6 +45,26 @@ export default function FormsListTab({
   const [allUsers, setAllUsers] = useState([]);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareForm, setShareForm] = useState(null);
+  const [shareSlug, setShareSlug] = useState(null);
+
+  const handleShare = async (form) => {
+    setShareForm(form);
+    try {
+      const r = await api.post(`/Form/templates/${form.id}/share`);
+      setShareSlug(r.data.slug);
+      setShowShareModal(true);
+    } catch {
+      toast.error('Paylaşım linki oluşturulamadı.');
+    }
+  };
+
+  const copyShareLink = () => {
+    const link = `http://localhost:5173/f/${shareSlug}`;
+    navigator.clipboard.writeText(link);
+    toast.success('Link kopyalandı!');
+  };
 
   const formStatus = (form) => {
     const now = new Date();
@@ -68,15 +89,22 @@ export default function FormsListTab({
   const handleAssign = async () => {
     if (selectedUserIds.length === 0)
       return toast.error('En az bir kullanıcı seçilmelidir.');
+    if (!targetForm?.id)
+      return toast.error('Form bilgisi alınamadı.');
+    
+    const payload = {
+      FormTemplateId: targetForm.id,
+      UserIds: selectedUserIds
+    };
+    console.log('Assign payload:', payload);
+    
     try {
-      await api.post('/Form/assign', {
-        formTemplateId: targetForm.id,
-        userIds: selectedUserIds,
-      });
+      await api.post('/Form/assign', payload);
       toast.success('Görev başarıyla atandı!');
       setShowAssignModal(false);
       setSelectedUserIds([]);
-    } catch {
+    } catch (err) {
+      console.error('Assign error:', err.response?.data);
       toast.error('Görev atama işlemi başarısız.');
     }
   };
@@ -459,6 +487,22 @@ export default function FormsListTab({
                   </button>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <button
+                      onClick={(e) => { e.stopPropagation(); handleShare(form); }}
+                      style={{
+                        padding: '8px',
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.2)',
+                        borderRadius: 'var(--radius)',
+                        color: '#10b981',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        transition: 'all var(--transition)'
+                      }}
+                      title="Paylaş"
+                    >
+                      <FaShareAlt size={13} />
+                    </button>
+                    <button
                       onClick={(e) => { e.stopPropagation(); }}
                       style={{
                         padding: '8px',
@@ -683,6 +727,117 @@ export default function FormsListTab({
               >
                 Görevlendir
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showShareModal && shareSlug && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'rgba(15, 23, 42, 0.5)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <div style={{
+            background: 'var(--surface)',
+            width: '420px',
+            borderRadius: 'var(--radius-xl)',
+            padding: '28px',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-xl)',
+            animation: 'fadeUp 0.2s ease'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '20px'
+            }}>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.01em' }}>
+                Form Paylaş
+              </div>
+              <button
+                onClick={() => { setShowShareModal(false); setShareForm(null); setShareSlug(null); }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-3)',
+                  padding: '4px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{
+                display: 'inline-flex',
+                padding: '16px',
+                background: 'white',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border)'
+              }}>
+                <QRCodeCanvas value={`http://localhost:5173/f/${shareSlug}`} size={180} />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-3)', marginBottom: '6px' }}>Paylaşım Linki</div>
+              <div style={{
+                display: 'flex',
+                gap: '8px'
+              }}>
+                <input
+                  readOnly
+                  value={`http://localhost:5173/f/${shareSlug}`}
+                  style={{
+                    flex: 1,
+                    padding: '12px 14px',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '13px',
+                    color: 'var(--text-2)',
+                    background: 'var(--surface-2)'
+                  }}
+                />
+                <button
+                  onClick={copyShareLink}
+                  style={{
+                    padding: '12px 16px',
+                    background: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  Kopyala
+                </button>
+              </div>
+            </div>
+
+            <div style={{
+              padding: '12px',
+              background: 'rgba(16, 185, 129, 0.1)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '12px',
+              color: '#10b981',
+              textAlign: 'center'
+            }}>
+              Bu link herkesle paylaşılabilir. Giriş yapmadan da form doldurulabilir.
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import Login from './pages/Login';
 import AdminPanel from './pages/AdminPanel';
 import UserPanel from './pages/UserPanel';
+import PublicForm from './pages/PublicForm';
 import ProtectedRoute from './components/ProtectedRoute'; // Yolun doğruluğundan emin ol
 
 export default function App() {
@@ -20,6 +21,7 @@ export default function App() {
                 </ProtectedRoute>
             } 
         />
+        <Route path="/f/:slug" element={<PublicForm />} />
       </Routes>
     </BrowserRouter>
   );

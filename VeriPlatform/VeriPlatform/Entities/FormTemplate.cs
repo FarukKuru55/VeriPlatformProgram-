@@ -12,6 +12,8 @@ public class FormTemplate
     public bool IsRecurring { get; set; } = false;
     public string? RecurrenceType { get; set; }
 
+    public string? ShareSlug { get; set; }
+
     public List<Question> Questions { get; set; } = new();
     public List<Submission> Submissions { get; set; } = new();
 }

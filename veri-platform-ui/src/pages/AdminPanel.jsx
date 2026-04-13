@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import * as signalR from '@microsoft/signalr';
 import SortableItem from '../components/SortableItem';
 import { arrayMove } from '@dnd-kit/sortable';
 import Sidebar from '../components/admin/Sidebar';
@@ -97,8 +98,35 @@ export default function AdminPanel() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const dropdownRef = useRef(null);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   const swalOpts = { background: '#1e2330', color: '#f0f2f8', showCancelButton: true };
+
+  useEffect(() => {
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl("http://localhost:5062/hubs/notification", {
+        withCredentials: true
+      })
+      .withAutomaticReconnect()
+      .configureLogging(signalR.LogLevel.Information)
+      .build();
+
+    connection.start()
+      .then(() => {
+        console.log("SignalR bağlantısı kuruldu");
+      })
+      .catch(err => console.error("SignalR bağlantı hatası:", err));
+
+    connection.on("ReceiveNotification", (data) => {
+      console.log("Bildirim alındı:", data);
+      setNotificationCount(prev => prev + 1);
+      toast.success(`📝 Yeni yanıt: "${data.formTitle}"`);
+    });
+
+    return () => {
+      connection.stop();
+    };
+  }, []);
 
   const fetchTemplates = useCallback(async () => {
     try { const r = await api.get('/Form/templates'); setFormTemplates(r.data); }
@@ -280,6 +308,7 @@ export default function AdminPanel() {
         submissionsCount={submissions.length}
         handleLogout={handleLogout}
         Ico={Ico}
+        notificationCount={notificationCount}
       />
 
       {/* MAIN */}

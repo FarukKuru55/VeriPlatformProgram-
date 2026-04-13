@@ -22,6 +22,7 @@ export default function Sidebar({
   submissionsCount,
   handleLogout,
   Ico,
+  notificationCount = 0
 }) {
   const goTo = (tab) => {
     setSelectedForm(null);
@@ -92,6 +93,9 @@ export default function Sidebar({
           onClick={() => goTo('dashboard')}
         >
           {Ico.chart} Raporlar
+          {notificationCount > 0 && (
+            <span className="nav-badge" style={{ background: '#ef4444' }}>{notificationCount}</span>
+          )}
         </button>
 
         <button
