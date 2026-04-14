@@ -75,10 +75,7 @@ export default function AdminPanel() {
   const [newFormTitle, setNewFormTitle]   = useState('');
   const [selectedForm, setSelectedForm]   = useState(null);
 
-  const [startDate, setStartDate]         = useState('');
-  const [endDate, setEndDate]             = useState('');
-  const [isRecurring, setIsRecurring]     = useState(false);
-  const [recurrenceType, setRecurrenceType] = useState('Daily');
+  const [periodType, setPeriodType]        = useState(1); // 1=Daily, 2=Weekly, 3=Monthly
 
   const [questions, setQuestions]         = useState([]);
   const [newQuestionText, setNewQuestionText] = useState('');
@@ -201,9 +198,10 @@ export default function AdminPanel() {
   const handleCreateTemplate = async () => {
     if (!newFormTitle.trim()) return toast.error('Form adı boş olamaz!');
     try {
-      await api.post('/Form/templates', { title: newFormTitle, startDate: startDate||null, endDate: endDate||null, isRecurring, recurrenceType: isRecurring ? recurrenceType : null });
+      await api.post('/Form/templates', { title: newFormTitle, periodType });
       toast.success('Form oluşturuldu!');
-      setNewFormTitle(''); setStartDate(''); setEndDate(''); setIsRecurring(false);
+      setNewFormTitle('');
+      setPeriodType(1);
       fetchTemplates();
     } catch { toast.error('Oluşturulamadı.'); }
   };
@@ -365,10 +363,7 @@ export default function AdminPanel() {
          {!selectedForm && activeTab === 'forms' && (
             <FormsListTab 
               newFormTitle={newFormTitle} setNewFormTitle={setNewFormTitle}
-              startDate={startDate} setStartDate={setStartDate}
-              endDate={endDate} setEndDate={setEndDate}
-              isRecurring={isRecurring} setIsRecurring={setIsRecurring}
-              recurrenceType={recurrenceType} setRecurrenceType={setRecurrenceType}
+              periodType={periodType} setPeriodType={setPeriodType}
               handleCreateTemplate={handleCreateTemplate}
               formTemplates={formTemplates}
               setSelectedForm={setSelectedForm}

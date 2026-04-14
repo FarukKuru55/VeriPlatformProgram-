@@ -31,32 +31,24 @@ public class FormController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GetTemplates()
     {
-        var isAdmin = User.IsInRole("Admin");
-        var now = DateTime.UtcNow;
-        var query = _db.FormTemplates.AsQueryable();
-
-        if (!isAdmin)
-        {
-            query = query.Where(t =>
-                (t.StartDate == null || t.StartDate <= now) &&
-                (t.EndDate == null || t.EndDate >= now)
-            );
-        }
-
-        return Ok(await query.OrderByDescending(t => t.CreatedAt).ToListAsync());
+        return Ok(await _db.FormTemplates.OrderByDescending(t => t.CreatedAt).ToListAsync());
     }
 
     [HttpPost("templates")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> CreateTemplate([FromBody] FormTemplate template)
+    public async Task<IActionResult> CreateTemplate([FromBody] FormTemplateDto template)
     {
-        template.StartDate = template.StartDate?.ToUniversalTime();
-        template.EndDate = template.EndDate?.ToUniversalTime();
-        template.CreatedAt = DateTime.UtcNow;
+        var newTemplate = new FormTemplate
+        {
+            Title = template.Title,
+            Description = template.Description,
+            PeriodType = template.PeriodType,
+            CreatedAt = DateTime.UtcNow
+        };
 
-        _db.FormTemplates.Add(template);
+        _db.FormTemplates.Add(newTemplate);
         await _db.SaveChangesAsync();
-        return Ok(template);
+        return Ok(newTemplate);
     }
 
     [HttpDelete("templates/{id}")]
@@ -256,7 +248,9 @@ public class FormController : ControllerBase
                 fa.FormTemplateId,
                 fa.FormTemplate!.Title,
                 fa.AssignedAt,
-                fa.FormTemplate.EndDate
+                fa.FormTemplate.PeriodType,
+                fa.IsCompleted,
+                Status = fa.IsCompleted ? "completed" : "pending"
             }).ToList();
 
         return Ok(tasks);
@@ -417,7 +411,8 @@ public class FormController : ControllerBase
         var formStatusBreakdown = await _db.FormTemplates
             .Select(t => new {
                 Title = t.Title,
-                Active = (t.StartDate == null || t.StartDate <= now) && (t.EndDate == null || t.EndDate >= now),
+                Active = true,
+                PeriodType = t.PeriodType,
                 Submissions = t.Submissions.Count,
                 Questions = _db.Questions.Count(q => q.FormTemplateId == t.Id)
             })
@@ -438,9 +433,9 @@ public class FormController : ControllerBase
             totalForms = await _db.FormTemplates.CountAsync(),
             totalSubmissions = await _db.Submissions.CountAsync(),
             totalUsers = await _db.Users.CountAsync(),
-            activeForms = await _db.FormTemplates.CountAsync(t => (t.StartDate == null || t.StartDate <= now) && (t.EndDate == null || t.EndDate >= now)),
-            expiredForms = await _db.FormTemplates.CountAsync(t => t.EndDate != null && t.EndDate < now),
-            pendingForms = await _db.FormTemplates.CountAsync(t => t.StartDate != null && t.StartDate > now),
+            activeForms = await _db.FormTemplates.CountAsync(),
+            expiredForms = 0,
+            pendingForms = 0,
             dailySubmissions,
             topForms = await _db.FormTemplates.Select(t => new { Name = t.Title, Basvuru = t.Submissions.Count }).OrderByDescending(x => x.Basvuru).Take(5).ToListAsync(),
             totalAssignments,
@@ -476,7 +471,7 @@ public class FormController : ControllerBase
             var totalAssigned = userAssignments.Count;
             var totalCompleted = userAssignments.Count(a => a.IsCompleted);
             var recentCompleted = recentAssignments.Count(a => a.IsCompleted);
-            var recentMissed = recentAssignments.Count(a => !a.IsCompleted && a.FormTemplate.EndDate != null && a.FormTemplate.EndDate < now);
+            var recentMissed = recentAssignments.Count(a => !a.IsCompleted);
 
             userStats.Add(new
             {
@@ -501,7 +496,7 @@ public class FormController : ControllerBase
             totalForms = await _db.FormTemplates.CountAsync(),
             totalAssignments = await _db.FormAssignments.CountAsync(),
             totalSubmissions = await _db.Submissions.CountAsync(),
-            activeForms = await _db.FormTemplates.CountAsync(t => (t.StartDate == null || t.StartDate <= now) && (t.EndDate == null || t.EndDate >= now)),
+            activeForms = await _db.FormTemplates.CountAsync(),
             overallCompletionRate = await _db.FormAssignments.CountAsync() > 0 
                 ? Math.Round((double)await _db.FormAssignments.CountAsync(a => a.IsCompleted) / await _db.FormAssignments.CountAsync() * 100, 1)
                 : 0
@@ -746,4 +741,11 @@ public class PublicSubmitDto
 {
     public string Slug { get; set; } = "";
     public Dictionary<string, object> Answers { get; set; } = new();
+}
+
+public class FormTemplateDto
+{
+    public string Title { get; set; } = "";
+    public string? Description { get; set; }
+    public PeriodType PeriodType { get; set; } = PeriodType.Daily;
 }

@@ -30,10 +30,7 @@ const Ico = {
 
 export default function FormsListTab({
   newFormTitle, setNewFormTitle,
-  startDate, setStartDate,
-  endDate, setEndDate,
-  isRecurring, setIsRecurring,
-  recurrenceType, setRecurrenceType,
+  periodType, setPeriodType,
   handleCreateTemplate,
   formTemplates,
   setSelectedForm, setActiveTab,
@@ -67,12 +64,13 @@ export default function FormsListTab({
   };
 
   const formStatus = (form) => {
-    const now = new Date();
-    const s = form.startDate ? new Date(form.startDate) : null;
-    const e = form.endDate ? new Date(form.endDate) : null;
-    if (s && now < s) return { label: 'BEKLEMEDE', cls: 'pending', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' };
-    if (e && now > e) return { label: 'SONA ERDİ', cls: 'expired', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' };
-    return { label: 'AKTİF', cls: 'active', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' };
+    const periodLabels = { 1: 'Günlük', 2: 'Haftalık', 3: 'Aylık' };
+    return { 
+      label: periodLabels[form.periodType] || 'Günlük', 
+      cls: 'active', 
+      color: '#10b981', 
+      bg: 'rgba(16, 185, 129, 0.1)' 
+    };
   };
 
   const openAssignModal = async (form) => {
@@ -114,8 +112,10 @@ export default function FormsListTab({
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
 
-  const recurrenceLabel = (type) =>
-    ({ Daily: 'Günlük', Weekly: 'Haftalık', Monthly: 'Aylık' }[type] ?? 'Periyodik');
+  const recurrenceLabel = (type) => {
+    const labels = { 1: 'Günlük', 2: 'Haftalık', 3: 'Aylık' };
+    return labels[type] || 'Günlük';
+  };
 
   const filteredForms = formTemplates.filter(f =>
     !searchQuery || f.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -204,97 +204,34 @@ export default function FormsListTab({
               textTransform: 'uppercase',
               letterSpacing: '0.5px'
             }}>
-              Başlangıç Tarihi
+              Görev Periyodu
             </label>
-            <input
-              type="datetime-local"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+            <select
+              value={periodType}
+              onChange={(e) => setPeriodType(Number(e.target.value))}
               style={{
                 padding: '10px 14px',
                 border: '1px solid var(--border-2)',
                 borderRadius: 'var(--radius-md)',
                 fontSize: '13px',
                 outline: 'none',
-                background: 'var(--surface)'
+                background: 'var(--surface)',
+                minWidth: '160px',
+                cursor: 'pointer'
               }}
-            />
-          </div>
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '11px',
-              fontWeight: 600,
-              color: 'var(--text-3)',
-              marginBottom: '6px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}>
-              Bitiş Tarihi
-            </label>
-            <input
-              type="datetime-local"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              style={{
-                padding: '10px 14px',
-                border: '1px solid var(--border-2)',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '13px',
-                outline: 'none',
-                background: 'var(--surface)'
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--accent)';
+                e.target.style.boxShadow = '0 0 0 3px var(--accent-soft)';
               }}
-            />
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '10px 16px',
-            background: isRecurring ? 'rgba(99, 102, 241, 0.05)' : 'var(--surface-2)',
-            borderRadius: 'var(--radius-md)',
-            border: `1px solid ${isRecurring ? 'rgba(99, 102, 241, 0.2)' : 'var(--border)'}`,
-            cursor: 'pointer',
-            transition: 'all var(--transition)'
-          }}
-          onClick={() => setIsRecurring(!isRecurring)}
-          >
-            <input
-              type="checkbox"
-              checked={isRecurring}
-              onChange={(e) => setIsRecurring(e.target.checked)}
-              style={{ width: '16px', height: '16px', accentColor: '#6366f1' }}
-            />
-            <span style={{
-              fontSize: '13px',
-              fontWeight: 600,
-              color: isRecurring ? '#6366f1' : 'var(--text-2)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}>
-              <IconRepeat size={14} />
-              Periyodik Form
-            </span>
-            {isRecurring && (
-              <select
-                value={recurrenceType}
-                onChange={(e) => setRecurrenceType(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  padding: '6px 10px',
-                  border: '1px solid var(--border-2)',
-                  borderRadius: 'var(--radius)',
-                  fontSize: '12px',
-                  background: 'var(--surface)',
-                  outline: 'none'
-                }}
-              >
-                <option value="Daily">Günlük</option>
-                <option value="Weekly">Haftalık</option>
-                <option value="Monthly">Aylık</option>
-              </select>
-            )}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--border-2)';
+                e.target.style.boxShadow = 'none';
+              }}
+            >
+              <option value={1}>Günlük</option>
+              <option value={2}>Haftalık</option>
+              <option value={3}>Aylık</option>
+            </select>
           </div>
         </div>
       </div>
@@ -438,24 +375,9 @@ export default function FormsListTab({
                     fontSize: '12px',
                     color: 'var(--text-3)'
                   }}>
-                    <IconCalendar size={13} />
-                    {form.endDate
-                      ? new Date(form.endDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })
-                      : 'Süresiz'}
+                    <IconRepeat size={13} />
+                    {recurrenceLabel(form.periodType)}
                   </div>
-                  {form.isRecurring && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontSize: '12px',
-                      color: '#6366f1',
-                      fontWeight: 500
-                    }}>
-                      <IconRepeat size={13} />
-                      {recurrenceLabel(form.recurrenceType)}
-                    </div>
-                  )}
                 </div>
 
                 <div style={{

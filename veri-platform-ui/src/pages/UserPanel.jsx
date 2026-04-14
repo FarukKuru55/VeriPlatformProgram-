@@ -89,82 +89,125 @@ const ActivityCalendar = ({ dailyData }) => {
   );
 };
 
-const Dashboard = ({ analytics }) => {
+const Dashboard = ({ analytics, tasks, handleSelectForm }) => {
+  const [activeTab, setActiveTab] = useState('GUNLUK');
+  const [subFilter, setSubFilter] = useState(1);
+
   const { summary, dailyData } = analytics || { 
-    summary: { 
-      totalCompleted: 0, 
-      totalPending: 0, 
-      totalMissed: 0, 
-      completionRate: 0 
-    }, 
+    summary: { totalCompleted: 0, totalPending: 0, totalMissed: 0, completionRate: 0 }, 
     dailyData: [] 
   };
 
+  const weeks = ['1. Hafta', '2. Hafta', '3. Hafta', '4. Hafta'];
+  const months = ['Ocak', 'Subat', 'Mart', 'Nisan', 'Mayis', 'Haziran', 'Temmuz', 'Agustos', 'Eylul', 'Ekim', 'Kasim', 'Aralik'];
+
+  const getDeadlineStatus = (endDate) => {
+    if (!endDate) return { label: 'Suresiz', cls: 'neutral' };
+    const diff = Math.ceil((new Date(endDate) - new Date()) / 86400000);
+    if (diff < 0) return { label: 'Suresi Doldu', cls: 'urgent' };
+    if (diff <= 3) return { label: diff + ' gun kaldi', cls: 'urgent' };
+    return { label: new Date(endDate).toLocaleDateString('tr-TR'), cls: 'normal' };
+  };
+
+  const renderTaskCard = (task) => (
+    <div key={task.id} className="tab-task-card" onClick={() => handleSelectForm(task, true)}>
+      <div className="tab-task-icon"><FaClipboard /></div>
+      <div className="tab-task-content">
+        <div className="tab-task-title">{task.title}</div>
+        <div className="tab-task-date">
+          <span className={'task-deadline-badge ' + getDeadlineStatus(task.endDate).cls}>
+            {getDeadlineStatus(task.endDate).label}
+          </span>
+        </div>
+      </div>
+      <div className="tab-task-arrow"><ArrowIcon /></div>
+    </div>
+  );
+
+  const filteredTasks = tasks.filter(t => {
+    if (activeTab === 'GUNLUK') return t.periodType === 1 || !t.periodType;
+    if (activeTab === 'HAFTALIK') return t.periodType === 2;
+    if (activeTab === 'AYLIK') return t.periodType === 3;
+    return false;
+  });
+
   return (
     <div className="dashboard-container">
-      <div className="dashboard-header">
-        <FaChartBar size={18} />
-        <span>Performansım</span>
-      </div>
-      
       <div className="dashboard-stats">
         <div className="stat-card">
           <div className="stat-icon completed"><FaCheck /></div>
-          <div className="stat-info">
-            <span className="stat-value">{summary.totalCompleted ?? 0}</span>
-            <span className="stat-label">Tamamlandı</span>
-          </div>
+          <div className="stat-info"><span className="stat-value">{summary.totalCompleted ?? 0}</span><span className="stat-label">Tamamlandi</span></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon pending"><FaTasks /></div>
-          <div className="stat-info">
-            <span className="stat-value">{summary.totalPending ?? 0}</span>
-            <span className="stat-label">Bekliyor</span>
-          </div>
+          <div className="stat-info"><span className="stat-value">{summary.totalPending ?? 0}</span><span className="stat-label">Bekliyor</span></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon missed"><FaTimes /></div>
-          <div className="stat-info">
-            <span className="stat-value">{summary.totalMissed ?? 0}</span>
-            <span className="stat-label">Kaçırıldı</span>
-          </div>
+          <div className="stat-info"><span className="stat-value">{summary.totalMissed ?? 0}</span><span className="stat-label">Kacirildi</span></div>
         </div>
         <div className="stat-card highlight">
           <div className="stat-icon rate"><FaChartBar /></div>
-          <div className="stat-info">
-            <span className="stat-value">%{summary.completionRate ?? 0}</span>
-            <span className="stat-label">Başarı Oranı</span>
-          </div>
+          <div className="stat-info"><span className="stat-value">%{summary.completionRate ?? 0}</span><span className="stat-label">Basari Orani</span></div>
         </div>
       </div>
 
-      <ActivityCalendar dailyData={dailyData} />
+      <div className="dashboard-tabs">
+        <button className={'tab-btn ' + (activeTab === 'GUNLUK' ? 'active' : '')} onClick={() => setActiveTab('GUNLUK')}>GUNLUK</button>
+        <button className={'tab-btn ' + (activeTab === 'HAFTALIK' ? 'active' : '')} onClick={() => setActiveTab('HAFTALIK')}>HAFTALIK</button>
+        <button className={'tab-btn ' + (activeTab === 'AYLIK' ? 'active' : '')} onClick={() => setActiveTab('AYLIK')}>AYLIK</button>
+      </div>
+
+      {activeTab === 'HAFTALIK' && (
+        <div className="sub-filters">
+          {weeks.map((w, i) => (
+            <button key={i} className={'sub-filter-btn ' + (subFilter === i + 1 ? 'active' : '')} onClick={() => setSubFilter(i + 1)}>{w}</button>
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'AYLIK' && (
+        <div className="sub-filters">
+          {months.map((m, i) => (
+            <button key={i} className={'sub-filter-btn ' + (subFilter === i + 1 ? 'active' : '')} onClick={() => setSubFilter(i + 1)}>{m}</button>
+          ))}
+        </div>
+      )}
+
+      <div className="tab-task-list">
+        {filteredTasks.length > 0 ? filteredTasks.map(renderTaskCard) : (
+          <div className="no-tasks"><FaInbox className="no-tasks-icon" /><div className="no-tasks-title">Gorev yok</div></div>
+        )}
+      </div>
     </div>
   );
 };
 
 const UserTasks = ({ tasks, handleSelectForm }) => {
   const getDeadlineStatus = (endDate) => {
-    if (!endDate) return { label: 'Süresiz', cls: 'neutral' };
+    if (!endDate) return { label: 'Suresiz', cls: 'neutral' };
     const diff = Math.ceil((new Date(endDate) - new Date()) / 86400000);
-    if (diff < 0)  return { label: 'Süresi Doldu', cls: 'urgent' };
-    if (diff <= 3) return { label: `${diff} gün kaldı`, cls: 'urgent' };
-    return { label: `${new Date(endDate).toLocaleDateString('tr-TR')} bitiş`, cls: 'normal' };
+    if (diff < 0) return { label: 'Suresi Doldu', cls: 'urgent' };
+    if (diff <= 3) return { label: diff + ' gun kaldi', cls: 'urgent' };
+    return { label: new Date(endDate).toLocaleDateString('tr-TR'), cls: 'normal' };
   };
 
-  if (tasks.length === 0) {
+  // Only show NOT completed tasks (active/work to do)
+  const activeTasks = tasks.filter(t => t.status !== 'completed');
+
+  if (activeTasks.length === 0) {
     return (
       <div className="no-tasks">
         <FaInbox className="no-tasks-icon" />
-        <div className="no-tasks-title">Atanmış göreviniz bulunmuyor</div>
-        <div className="no-tasks-desc">Yöneticiniz size bir form atadığında burada görünecek.</div>
+        <div className="no-tasks-title">Aktif gorefiniz bulunmuyor</div>
+        <div className="no-tasks-desc">Tum formlari tamamladiniz!</div>
       </div>
     );
   }
 
   return (
     <div className="tasks-grid">
-      {tasks.map(task => {
+      {activeTasks.map(task => {
         const dl = getDeadlineStatus(task.endDate);
         return (
           <div key={task.id} className="task-card" onClick={() => handleSelectForm(task)}>
@@ -192,6 +235,7 @@ export default function UserPanel() {
   const [questions, setQuestions]                 = useState([]);
   const [answers, setAnswers]                     = useState({});
   const [isAdmin, setIsAdmin]                     = useState(false);
+  const [isReadOnly, setIsReadOnly]                 = useState(false);
 
   const fetchMyTasks = useCallback(async () => {
     try {
@@ -214,16 +258,18 @@ export default function UserPanel() {
     } catch { toast.error('Sorular yüklenemedi.'); }
   }, []);
 
-  const handleSelectForm = (task) => {
+  const handleSelectForm = (task, isFromArchive = false) => {
     setSelectedFormId(task.formTemplateId);
     setSelectedFormTitle(task.title);
     setShowDashboard(false);
+    setIsReadOnly(isFromArchive || task.status === 'completed');
     fetchQuestions(task.formTemplateId);
     window.history.pushState({}, '', `/user?formId=${task.formTemplateId}`);
   };
 
   const handleBack = () => {
     setSelectedFormId(null); setQuestions([]); setAnswers({});
+    setIsReadOnly(false);
     setShowDashboard(true);
     window.history.pushState({}, '', '/user');
     fetchMyTasks();
@@ -314,17 +360,18 @@ export default function UserPanel() {
 
   const renderInput = (q) => {
     const options = q.optionsJson ? JSON.parse(q.optionsJson) : [];
+    const disabled = isReadOnly;
 
     switch (q.type) {
       case 'radio':
         return (
           <div className="options-container">
             {options.map((opt, i) => (
-              <label key={i} className={`radio-option ${answers[q.id] === opt ? 'selected' : ''}`}>
+              <label key={i} className={`radio-option ${answers[q.id] === opt ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
                 <input type="radio" name={`q-${q.id}`} value={opt}
                   checked={answers[q.id] === opt}
                   onChange={e => handleAnswerChange(q.id, e.target.value)}
-                  style={{ display: 'none' }} />
+                  style={{ display: 'none' }} disabled={disabled} />
                 <div className="custom-radio">
                   {answers[q.id] === opt && <div className="radio-dot" />}
                 </div>
@@ -340,14 +387,14 @@ export default function UserPanel() {
             {options.map((opt, i) => {
               const checked = (answers[q.id] || []).includes(opt);
               return (
-                <label key={i} className={`checkbox-option ${checked ? 'selected' : ''}`}>
+                <label key={i} className={`checkbox-option ${checked ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
                   <input type="checkbox" value={opt} checked={checked}
                     onChange={e => {
                       const cur = answers[q.id] || [];
                       handleAnswerChange(q.id, e.target.checked
                         ? [...cur, opt]
                         : cur.filter(a => a !== opt));
-                    }} style={{ display: 'none' }} />
+                    }} style={{ display: 'none' }} disabled={disabled} />
                   <div className="custom-checkbox">
                     {checked && <CheckIcon />}
                   </div>
@@ -371,6 +418,7 @@ export default function UserPanel() {
                 const val = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
                 handleAnswerChange(q.id, val);
               }}
+              disabled={disabled}
             />
           </div>
         );
@@ -379,19 +427,19 @@ export default function UserPanel() {
       case 'image':
         return (
           <div className="file-upload-wrapper">
-            <label className="file-upload-area">
+            <label className={'file-upload-area ' + (disabled ? 'disabled' : '')}>
               <input type="file" style={{ display: 'none' }}
-                onChange={e => handleFileUpload(q.id, e.target.files[0])} />
+                onChange={e => handleFileUpload(q.id, e.target.files[0])} disabled={disabled} />
               <div className="file-upload-icon"><FaFileAlt /></div>
               <div className="file-upload-text">
-                {answers[q.id] ? 'Dosyayı Değiştir' : 'Dosya seçmek için tıklayın'}
+                {answers[q.id] ? 'Dosyayi Degistir' : 'Dosya secmek icin tiklayin'}
               </div>
-              <div className="file-upload-hint">veya sürükleyip bırakın</div>
+              <div className="file-upload-hint">veya surukleyip birakin</div>
             </label>
             {answers[q.id] && (
               <div className="file-success">
-                <FaCheckCircle style={{ marginRight: 4 }} /> Yüklendi —{' '}
-                <a href={answers[q.id]} target="_blank" rel="noreferrer">Görüntüle</a>
+                <FaCheckCircle style={{ marginRight: 4 }} /> Yuklendi —{' '}
+                <a href={answers[q.id]} target="_blank" rel="noreferrer">Goruntule</a>
               </div>
             )}
           </div>
@@ -404,10 +452,11 @@ export default function UserPanel() {
             placeholder={
               q.type === 'number' ? '0'
               : q.type === 'date' ? ''
-              : 'Cevabınızı buraya yazın...'
+              : 'Cevabinizi buraya yazin...'
             }
             value={answers[q.id] || ''}
             onChange={e => handleAnswerChange(q.id, e.target.value)}
+            disabled={disabled}
           />
         );
     }
@@ -464,7 +513,7 @@ export default function UserPanel() {
             </div>
 
             {showDashboard ? (
-              <Dashboard analytics={analytics} />
+              <Dashboard analytics={analytics} tasks={tasks} handleSelectForm={handleSelectForm} />
             ) : (
               <UserTasks tasks={tasks} handleSelectForm={handleSelectForm} />
             )}
@@ -517,12 +566,20 @@ export default function UserPanel() {
                 </div>
 
                 <div className="form-submit-area">
-                  <div className="submit-info">
-                    <strong>{answeredCount}</strong> / {questions.length} soru yanıtlandı
-                  </div>
-                  <button type="submit" className="submit-btn">
-                    Formu Gönder <SendIcon />
-                  </button>
+                  {isReadOnly ? (
+                    <div className="form-readonly-notice">
+                      <FaCheckCircle /> Bu formu arsiv modunda goruntuluyorsunuz, degisiklik yapilamaz.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="submit-info">
+                        <strong>{answeredCount}</strong> / {questions.length} soru yanitlandi
+                      </div>
+                      <button type="submit" className="submit-btn">
+                        Formu Gonder <SendIcon />
+                      </button>
+                    </>
+                  )}
                 </div>
               </form>
             )}
