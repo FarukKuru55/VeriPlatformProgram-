@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ArrowLeft, Send, Check, FileText, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Send, Check, FileText, ClipboardList, ShieldCheck } from 'lucide-react';
 import ReadOnlyBanner from './ReadOnlyBanner';
 
 const LiraIcon = () => <span style={{ fontSize: '14px', fontWeight: 700 }}>₺</span>;
@@ -179,7 +179,12 @@ export default function FormFillView({
           </div>
 
           <div className="form-submit-area">
-            {isReadOnly ? null : (
+            {isReadOnly ? (
+              <div className="readonly-submit-warning">
+                <ShieldCheck size={18} />
+                Bu formu daha önce doldurdunuz, sadece okuma modundasınız.
+              </div>
+            ) : (
               <>
                 <div className="submit-info">
                   <strong>{answeredCount}</strong> / {questions.length} soru yanıtlandı

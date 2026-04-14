@@ -3,10 +3,10 @@ import { CalendarDays, Check, X } from 'lucide-react';
 
 const getStatus = (day) => {
   if (!day) return 'empty';
-  if (day.Assigned === 0) return 'empty';
-  if (day.Completed > 0 && day.Missed === 0) return 'completed';
-  if (day.Missed > 0) return 'missed';
-  if (day.Pending > 0) return 'pending';
+  if (day.assigned === 0) return 'empty';
+  if (day.completed > 0 && day.missed === 0) return 'completed';
+  if (day.missed > 0) return 'missed';
+  if (day.pending > 0) return 'pending';
   return 'empty';
 };
 
@@ -44,9 +44,9 @@ export default function ActivityCalendar({ dailyData }) {
             <div
               key={i}
               className={`calendar-day ${status}`}
-              title={day ? `${day.Date}: ${day.Completed || 0}/${day.Assigned || 0} form` : 'Veri yok'}
+              title={day ? `${day.date}: ${day.completed || 0}/${day.assigned || 0} form` : 'Veri yok'}
             >
-              <span className="day-number">{getDayNumber(day?.Date)}</span>
+              <span className="day-number">{getDayNumber(day?.date)}</span>
               <span className="day-status">
                 {status === 'completed' && <Check size={10} />}
                 {status === 'missed' && <X size={10} />}

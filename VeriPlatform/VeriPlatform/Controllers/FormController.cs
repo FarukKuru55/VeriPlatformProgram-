@@ -226,18 +226,15 @@ public class FormController : ControllerBase
     public async Task<IActionResult> GetMyTasks()
     {
         var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
+
         if (string.IsNullOrEmpty(userIdStr))
             return Unauthorized("Token'da userId bulunamadı");
 
-        if (!int.TryParse(userIdStr, out int userId)) 
+        if (!int.TryParse(userIdStr, out int userId))
             return Unauthorized("Geçersiz userId: " + userIdStr);
 
-        var allAssignments = await _db.FormAssignments.ToListAsync();
-        var userAssignments = allAssignments.Where(fa => fa.UserId == userId).ToList();
-
         var assignments = await _db.FormAssignments
-            .Where(fa => fa.UserId == userId && !fa.IsCompleted)
+            .Where(fa => fa.UserId == userId)
             .Include(fa => fa.FormTemplate)
             .ToListAsync();
 
@@ -248,7 +245,8 @@ public class FormController : ControllerBase
                 fa.FormTemplateId,
                 fa.FormTemplate!.Title,
                 fa.AssignedAt,
-                fa.FormTemplate.PeriodType,
+                CompletedAt = fa.CompletedAt,
+                PeriodType = (int)fa.FormTemplate.PeriodType,
                 fa.IsCompleted,
                 Status = fa.IsCompleted ? "completed" : "pending"
             }).ToList();

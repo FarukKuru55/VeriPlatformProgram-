@@ -471,17 +471,22 @@
 
 /* ─── DAILY LAYOUT (Calendar left + Tasks right) ─── */
 .tab-daily-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .tab-daily-calendar {
-  min-width: 0;
+  flex: 1 1 300px;
+  min-width: 300px;
+  max-width: 400px;
 }
 
 .tab-daily-tasks {
-  min-width: 0;
+  flex: 2 1 400px;
+  min-width: 300px;
 }
 
 .tab-daily-tasks .tab-task-list {
@@ -703,6 +708,23 @@
   font-weight: 600;
 }
 
+/* ─── READ-ONLY SUBMIT WARNING ─── */
+.readonly-submit-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 2px solid #f59e0b;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+  text-align: center;
+  justify-content: center;
+}
+
 /* ─── READ-ONLY BANNER ─── */
 .readonly-banner {
   display: flex;
@@ -765,6 +787,22 @@
   opacity: 0.5;
   pointer-events: none;
   cursor: not-allowed;
+}
+
+/* ─── READ-ONLY SUBMIT WARNING ─── */
+.readonly-submit-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(99, 102, 241, 0.08));
+  border: 1.5px solid rgba(59, 130, 246, 0.25);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3b82f6;
+  width: 100%;
+  justify-content: center;
 }
 
 /* ─── FORM FILL / INPUTS ─── */
@@ -1207,7 +1245,13 @@
    ═══════════════════════════════════════════════════════════ */
 @media (max-width: 1024px) {
   .tab-daily-layout {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .tab-daily-calendar,
+  .tab-daily-tasks {
+    max-width: 100%;
+    flex: 1 1 100%;
   }
 
   .dashboard-stats {
