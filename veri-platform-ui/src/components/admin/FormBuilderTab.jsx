@@ -3,8 +3,8 @@ import toast from 'react-hot-toast';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableItem from '../SortableItem';
-import { FaPlus, FaTextWidth, FaHashtag, FaCalendarAlt, FaDotCircle, FaCheckSquare, FaImage, FaFileAlt, FaTrashAlt, FaEdit, FaGripVertical, FaAsterisk, FaQuestion } from 'react-icons/fa';
-import { IconPhoto, IconFile, IconCurrencyLira } from '@tabler/icons-react';
+import { FaPlus, FaTextWidth, FaHashtag, FaCalendarAlt, FaDotCircle, FaCheckSquare, FaImage, FaFileAlt, FaTrashAlt, FaEdit, FaGripVertical, FaAsterisk, FaQuestion, FaImages } from 'react-icons/fa';
+import { IconPhoto, IconFile, IconCurrencyLira, IconPhotoCheck, IconCheckbox } from '@tabler/icons-react';
 
 export default function FormBuilderTab({
   selectedForm,
@@ -16,17 +16,26 @@ export default function FormBuilderTab({
   const [newQuestionText, setNewQuestionText] = useState('');
   const [selectedType, setSelectedType] = useState('text');
   const [options, setOptions] = useState([]);
+  const [imageOptions, setImageOptions] = useState([]);
   const [currentOption, setCurrentOption] = useState('');
   const [editingQuestionId, setEditingQuestionId] = useState(null);
   const [isRequired, setIsRequired] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
+  const [uploadingOption, setUploadingOption] = useState(false);
 
   const handleEditClick = (qId) => {
     const q = questions.find((x) => x.id === qId);
     if (!q) return;
     setNewQuestionText(q.label);
     setSelectedType(q.type);
-    setOptions(q.optionsJson ? JSON.parse(q.optionsJson) : []);
+    const parsed = q.optionsJson ? JSON.parse(q.optionsJson) : [];
+    if (q.type === 'image_radio' || q.type === 'image_checkbox') {
+      setImageOptions(parsed);
+      setOptions([]);
+    } else {
+      setOptions(parsed);
+      setImageOptions([]);
+    }
     setIsRequired(q.isRequired || false);
     setImageUrl(q.imageUrl || '');
     setEditingQuestionId(q.id);
@@ -36,6 +45,7 @@ export default function FormBuilderTab({
   const resetForm = () => {
     setNewQuestionText('');
     setOptions([]);
+    setImageOptions([]);
     setSelectedType('text');
     setIsRequired(false);
     setImageUrl('');
@@ -50,10 +60,35 @@ export default function FormBuilderTab({
     try {
       const res = await api.post('/Form/upload', formData);
       setImageUrl(res.data.url);
-      toast.success('Görsel başarıyla yüklendi.');
+      toast.success('Soru görseli yüklendi.');
     } catch {
       toast.error('Görsel yüklenemedi.');
     }
+  };
+
+  const handleImageOptionUpload = async (file) => {
+    if (!file) return;
+    setUploadingOption(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await api.post('/Form/upload', formData);
+      const url = res.data.url;
+      setImageOptions(prev => [...prev, { url, label: `Seçenek ${prev.length + 1}` }]);
+      toast.success('Seçenek görseli eklendi.');
+    } catch {
+      toast.error('Görsel yüklenemedi.');
+    } finally {
+      setUploadingOption(false);
+    }
+  };
+
+  const removeImageOption = (index) => {
+    setImageOptions(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateImageOptionLabel = (index, label) => {
+    setImageOptions(prev => prev.map((opt, i) => i === index ? { ...opt, label } : opt));
   };
 
   const handleSaveQuestion = async () => {
@@ -71,12 +106,37 @@ export default function FormBuilderTab({
           : null,
     };
 
+const isImageType = selectedType === 'image_radio' || selectedType === 'image_checkbox';
+    const finalOptionsJson = isImageType
+      ? (imageOptions.length > 0 ? JSON.stringify(imageOptions) : null)
+      : ((selectedType === 'radio' || selectedType === 'checkbox') && options.length > 0
+          ? JSON.stringify(options)
+          : null);
+
+    if (isImageType && imageOptions.length === 0) {
+      return toast.error('Görsel seçim soruları için en az 1 görsel seçenek ekleyin.');
+    }
+
     try {
       if (editingQuestionId) {
-        await api.put(`/Form/questions/${editingQuestionId}`, payload);
+        await api.put(`/Form/questions/${editingQuestionId}`, {
+          formTemplateId: selectedForm.id,
+          label: newQuestionText,
+          type: selectedType,
+          isRequired,
+          imageUrl: imageUrl || null,
+          optionsJson: finalOptionsJson,
+        });
         toast.success('Soru başarıyla güncellendi.');
       } else {
-        await api.post(`/Form/templates/${selectedForm.id}/questions`, payload);
+        await api.post(`/Form/templates/${selectedForm.id}/questions`, {
+          formTemplateId: selectedForm.id,
+          label: newQuestionText,
+          type: selectedType,
+          isRequired,
+          imageUrl: imageUrl || null,
+          optionsJson: finalOptionsJson,
+        });
         toast.success('Soru başarıyla eklendi.');
       }
       resetForm();
@@ -128,17 +188,21 @@ export default function FormBuilderTab({
     checkbox: <FaCheckSquare size={15} />,
     image: <IconPhoto size={15} />,
     file: <IconFile size={15} />,
+    image_radio: <FaImages size={15} />,
+    image_checkbox: <FaCheckSquare size={15} />,
   };
 
   const typeLabels = {
     text: 'Kısa Yanıt',
-    number: 'Sayısal Yanıt',
-    date: 'Tarih Seçimi',
+    number: 'Sayısal',
+    date: 'Tarih',
     currency: 'Para Birimi',
     radio: 'Tek Seçim',
     checkbox: 'Çoklu Seçim',
     image: 'Görsel Yükleme',
     file: 'Belge Yükleme',
+    image_radio: 'Görsel Seçim',
+    image_checkbox: 'Görsel Çoklu',
   };
 
   const typeColors = {
@@ -150,6 +214,8 @@ export default function FormBuilderTab({
     checkbox: { color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)' },
     image: { color: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)' },
     file: { color: '#6366f1', bg: 'rgba(99, 102, 241, 0.1)' },
+    image_radio: { color: '#f97316', bg: 'rgba(249, 115, 22, 0.1)' },
+    image_checkbox: { color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },
   };
 
   return (
@@ -256,8 +322,8 @@ export default function FormBuilderTab({
             </label>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '8px'
+              gridTemplateColumns: 'repeat(5, 1fr)',
+              gap: '6px'
             }}>
               {Object.entries(typeLabels).map(([value, label]) => {
                 const tc = typeColors[value];
@@ -428,6 +494,105 @@ export default function FormBuilderTab({
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {(selectedType === 'image_radio' || selectedType === 'image_checkbox') && (
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--text-3)',
+                marginBottom: '10px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Görsel Seçenekler
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
+                {imageOptions.map((opt, i) => (
+                  <div key={i} style={{
+                    position: 'relative',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border)',
+                    overflow: 'hidden'
+                  }}>
+                    <img src={opt.url} alt={opt.label} style={{
+                      width: '100%',
+                      height: '100px',
+                      objectFit: 'cover'
+                    }} />
+                    <input
+                      type="text"
+                      value={opt.label}
+                      onChange={(e) => updateImageOptionLabel(i, e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        border: 'none',
+                        borderTop: '1px solid var(--border)',
+                        fontSize: '11px',
+                        outline: 'none',
+                        background: 'var(--surface)',
+                        color: 'var(--text-2)',
+                        boxSizing: 'border-box'
+                      }}
+                      placeholder={`Seçenek ${i + 1}`}
+                    />
+                    <button
+                      onClick={() => removeImageOption(i)}
+                      style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '4px',
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '22px',
+                        height: '22px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                      }}
+                    >
+                      <FaTrashAlt size={10} />
+                    </button>
+                  </div>
+                ))}
+                <label style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100px',
+                  border: '2px dashed var(--border-2)',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: uploadingOption ? 'not-allowed' : 'pointer',
+                  color: 'var(--text-3)',
+                  fontSize: '12px',
+                  gap: '4px',
+                  transition: 'all var(--transition)',
+                  background: 'var(--surface-2)',
+                  opacity: uploadingOption ? 0.5 : 1
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-soft)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-2)'; e.currentTarget.style.background = 'var(--surface-2)'; }}
+                >
+                  <IconPhoto size={20} />
+                  {uploadingOption ? 'Yükleniyor...' : 'Görsel Ekle'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files[0] && handleImageOptionUpload(e.target.files[0])}
+                    style={{ display: 'none' }}
+                    disabled={uploadingOption}
+                  />
+                </label>
               </div>
             </div>
           )}

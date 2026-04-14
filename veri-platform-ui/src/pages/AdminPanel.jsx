@@ -370,7 +370,8 @@ export default function AdminPanel() {
               setActiveTab={setActiveTab}
               handleDeleteTemplate={handleDeleteTemplate}
               Ico={Ico}
-              api={api} 
+              api={api}
+              onFormUpdated={fetchTemplates}
             />
           )}
 

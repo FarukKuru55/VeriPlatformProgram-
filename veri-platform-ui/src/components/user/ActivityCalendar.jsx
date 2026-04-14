@@ -28,7 +28,7 @@ export default function ActivityCalendar({ dailyData }) {
   }
 
   return (
-    <div className="activity-calendar">
+    <div className="activity-calendar" style={{ width: '100%' }}>
       <div className="calendar-header">
         <span>Son 30 Gün</span>
         <div className="calendar-legend">
@@ -37,7 +37,7 @@ export default function ActivityCalendar({ dailyData }) {
           <span className="legend-item"><span className="legend-dot pending" />Bekliyor</span>
         </div>
       </div>
-      <div className="calendar-grid">
+      <div className="calendar-grid" style={{ width: '100%', overflowX: 'auto' }}>
         {dailyData.slice(-30).map((day, i) => {
           const status = getStatus(day);
           return (

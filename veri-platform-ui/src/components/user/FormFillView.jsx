@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ArrowLeft, Send, Check, FileText, ClipboardList, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Send, Check, FileText, ClipboardList, ShieldCheck, Camera, Image } from 'lucide-react';
 import ReadOnlyBanner from './ReadOnlyBanner';
 
 const LiraIcon = () => <span style={{ fontSize: '14px', fontWeight: 700 }}>₺</span>;
@@ -50,6 +50,52 @@ export default function FormFillView({
           </div>
         );
 
+      case 'image_radio':
+        return (
+          <div className="image-options-grid">
+            {options.map((opt, i) => {
+              const optValue = typeof opt === 'object' ? opt.url : opt;
+              const optLabel = typeof opt === 'object' ? (opt.label || `Seçenek ${i + 1}`) : opt;
+              const isSelected = answers[q.id] === optValue;
+              return (
+                <label key={i} className={`image-option-card ${isSelected ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
+                  onClick={() => !disabled && onAnswerChange(q.id, optValue)}>
+                  <div className="image-option-img-wrap">
+                    <img src={optValue} alt={optLabel} className="image-option-img" />
+                    {isSelected && <div className="image-option-check"><Check size={20} /></div>}
+                  </div>
+                  <div className="image-option-label">{optLabel}</div>
+                </label>
+              );
+            })}
+          </div>
+        );
+
+      case 'image_checkbox':
+        return (
+          <div className="image-options-grid">
+            {options.map((opt, i) => {
+              const optValue = typeof opt === 'object' ? opt.url : opt;
+              const optLabel = typeof opt === 'object' ? (opt.label || `Seçenek ${i + 1}`) : opt;
+              const checked = (answers[q.id] || []).includes(optValue);
+              return (
+                <label key={i} className={`image-option-card ${checked ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
+                  onClick={() => {
+                    if (disabled) return;
+                    const cur = answers[q.id] || [];
+                    onAnswerChange(q.id, checked ? cur.filter(a => a !== optValue) : [...cur, optValue]);
+                  }}>
+                  <div className="image-option-img-wrap">
+                    <img src={optValue} alt={optLabel} className="image-option-img" />
+                    {checked && <div className="image-option-check"><Check size={20} /></div>}
+                  </div>
+                  <div className="image-option-label">{optLabel}</div>
+                </label>
+              );
+            })}
+          </div>
+        );
+
       case 'checkbox':
         return (
           <div className="options-container">
@@ -92,8 +138,31 @@ export default function FormFillView({
           </div>
         );
 
-      case 'file':
       case 'image':
+        return (
+          <div className="file-upload-wrapper">
+            <label className={`file-upload-area photo-upload-area ${disabled ? 'disabled' : ''}`}>
+              <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+                onChange={e => onFileUpload(q.id, e.target.files[0])} disabled={disabled} />
+              <div className="file-upload-icon"><Camera size={36} /></div>
+              <div className="file-upload-text">
+                {answers[q.id] ? 'Fotoğrafı Değiştir' : 'Fotoğraf Çek veya Seç'}
+              </div>
+              <div className="file-upload-hint">Kameranızdan veya galerinizden yükleyin</div>
+            </label>
+            {answers[q.id] && (
+              <div className="image-preview-container">
+                <img src={answers[q.id]} alt="Yüklenen fotoğraf" className="image-preview" />
+                <div className="file-success" style={{ marginTop: 8 }}>
+                  <Check size={14} style={{ marginRight: 4 }} /> Yüklendi —{' '}
+                  <a href={answers[q.id]} target="_blank" rel="noreferrer">Tam boyut</a>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'file':
         return (
           <div className="file-upload-wrapper">
             <label className={`file-upload-area ${disabled ? 'disabled' : ''}`}>

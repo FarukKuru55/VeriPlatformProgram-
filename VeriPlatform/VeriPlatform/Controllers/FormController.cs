@@ -34,7 +34,7 @@ public class FormController : ControllerBase
         return Ok(await _db.FormTemplates.OrderByDescending(t => t.CreatedAt).ToListAsync());
     }
 
-    [HttpPost("templates")]
+[HttpPost("templates")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateTemplate([FromBody] FormTemplateDto template)
     {
@@ -49,6 +49,21 @@ public class FormController : ControllerBase
         _db.FormTemplates.Add(newTemplate);
         await _db.SaveChangesAsync();
         return Ok(newTemplate);
+    }
+
+    [HttpPut("templates/{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateTemplate(int id, [FromBody] FormTemplateDto dto)
+    {
+        var template = await _db.FormTemplates.FindAsync(id);
+        if (template == null) return NotFound();
+
+        template.Title = dto.Title;
+        template.Description = dto.Description;
+        template.PeriodType = dto.PeriodType;
+
+        await _db.SaveChangesAsync();
+        return Ok(template);
     }
 
     [HttpDelete("templates/{id}")]

@@ -36,6 +36,7 @@ export default function FormsListTab({
   setSelectedForm, setActiveTab,
   handleDeleteTemplate,
   api,
+  onFormUpdated,
 }) {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [targetForm, setTargetForm] = useState(null);
@@ -45,6 +46,35 @@ export default function FormsListTab({
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareForm, setShareForm] = useState(null);
   const [shareSlug, setShareSlug] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editPeriodType, setEditPeriodType] = useState(1);
+
+  const handleEditForm = (form) => {
+    setEditForm(form);
+    setEditTitle(form.title || '');
+    setEditDescription(form.description || '');
+    setEditPeriodType(form.periodType || 1);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTitle.trim()) return toast.error('Form adı boş olamaz.');
+    try {
+      await api.put(`/Form/templates/${editForm.id}`, {
+        title: editTitle,
+        description: editDescription,
+        periodType: editPeriodType
+      });
+      toast.success('Form başarıyla güncellendi.');
+      setShowEditModal(false);
+      if (onFormUpdated) onFormUpdated();
+    } catch {
+      toast.error('Form güncellenemedi.');
+    }
+  };
 
   const handleShare = async (form) => {
     setShareForm(form);
@@ -425,7 +455,7 @@ export default function FormsListTab({
                       <FaShareAlt size={13} />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); }}
+                      onClick={(e) => { e.stopPropagation(); handleEditForm(form); }}
                       style={{
                         padding: '8px',
                         background: 'var(--surface-2)',
@@ -436,6 +466,7 @@ export default function FormsListTab({
                         display: 'flex',
                         transition: 'all var(--transition)'
                       }}
+                      title="Düzenle"
                     >
                       <FaPencilAlt size={13} />
                     </button>
@@ -760,6 +791,211 @@ export default function FormsListTab({
               textAlign: 'center'
             }}>
               Bu link herkesle paylaşılabilir. Giriş yapmadan da form doldurulabilir.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && editForm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'rgba(15, 23, 42, 0.5)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <div style={{
+            background: 'var(--surface)',
+            width: '440px',
+            borderRadius: 'var(--radius-xl)',
+            padding: '24px',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-xl)',
+            animation: 'fadeUp 0.2s ease'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '24px'
+            }}>
+              <div>
+                <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.01em' }}>
+                  Formu Düzenle
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '2px' }}>
+                  Form bilgilerini güncelleyin
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEditModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-3)',
+                  padding: '4px',
+                  fontSize: '18px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--text-3)',
+                  marginBottom: '8px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Form Adı
+                </label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid var(--border-2)',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'all var(--transition)',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--accent)';
+                    e.target.style.boxShadow = '0 0 0 3px var(--accent-soft)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--border-2)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--text-3)',
+                  marginBottom: '8px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Açıklama
+                </label>
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Form açıklaması (isteğe bağlı)"
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid var(--border-2)',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'all var(--transition)',
+                    boxSizing: 'border-box',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--accent)';
+                    e.target.style.boxShadow = '0 0 0 3px var(--accent-soft)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--border-2)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--text-3)',
+                  marginBottom: '8px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Görev Periyodu
+                </label>
+                <select
+                  value={editPeriodType}
+                  onChange={(e) => setEditPeriodType(Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    border: '1px solid var(--border-2)',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '13px',
+                    outline: 'none',
+                    background: 'var(--surface)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value={1}>Günlük</option>
+                  <option value={2}>Haftalık</option>
+                  <option value={3}>Aylık</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+              <button
+                onClick={() => setShowEditModal(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-2)',
+                  background: 'var(--surface)',
+                  color: 'var(--text-2)',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  transition: 'all var(--transition)'
+                }}
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: 'none',
+                  background: 'var(--primary)',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.1)',
+                  transition: 'all var(--transition)'
+                }}
+              >
+                Kaydet
+              </button>
             </div>
           </div>
         </div>
