@@ -262,6 +262,104 @@ public class FormController : ControllerBase
         return Ok(tasks);
     }
 
+    [HttpGet("user-analytics/{userId?}")]
+    [Authorize]
+    public async Task<IActionResult> GetUserAnalytics(int? userId)
+    {
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out int currentUserId))
+            return Unauthorized("Geçersiz kullanıcı");
+
+        var isAdmin = User.IsInRole("Admin");
+        int targetUserId;
+
+        if (!isAdmin)
+        {
+            targetUserId = currentUserId;
+        }
+        else if (userId == null)
+        {
+            targetUserId = currentUserId;
+        }
+        else
+        {
+            targetUserId = userId.Value;
+        }
+
+        var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30).Date;
+        var today = DateTime.UtcNow.Date;
+
+        var assignments = await _db.FormAssignments
+            .Where(fa => fa.UserId == targetUserId)
+            .Include(fa => fa.FormTemplate)
+            .ToListAsync();
+
+        var recentAssignments = assignments.Where(a => a.AssignedAt >= thirtyDaysAgo).ToList();
+
+        var dailyData = new List<object>();
+        var totalCompleted = 0;
+        var totalMissed = 0;
+
+        for (var date = thirtyDaysAgo; date <= today; date = date.AddDays(1))
+        {
+            var dayAssignments = recentAssignments.Where(a => a.AssignedAt.Date == date).ToList();
+            var dayCompleted = dayAssignments.Count(a => a.IsCompleted);
+            var dayAssigned = dayAssignments.Count;
+            
+            totalCompleted += dayCompleted;
+            totalMissed += dayAssigned - dayCompleted;
+
+            var formTitles = dayAssignments
+                .Where(a => a.FormTemplate != null)
+                .Select(a => a.FormTemplate!.Title)
+                .Distinct()
+                .ToList();
+
+            dailyData.Add(new {
+                Date = date.ToString("yyyy-MM-dd"),
+                DayName = date.ToString("dd MMM", CultureInfo.GetCultureInfo("tr-TR")),
+                DayOfWeek = date.DayOfWeek.ToString(),
+                Assigned = dayAssigned,
+                Completed = dayCompleted,
+                Missed = Math.Max(0, dayAssigned - dayCompleted),
+                Pending = dayAssigned > 0 && !dayAssignments.All(a => a.IsCompleted) ? dayAssigned - dayCompleted : 0,
+                FormTitles = formTitles
+            });
+        }
+
+        var totalAssigned = recentAssignments.Count;
+        var completionRate = totalAssigned > 0 ? Math.Round((double)totalCompleted / totalAssigned * 100, 1) : 0;
+
+        var weeklyData = Enumerable.Range(0, 4).Select(weekIndex => {
+            var weekStart = today.AddDays(-(weekIndex + 1) * 7);
+            var weekEnd = today.AddDays(-weekIndex * 7);
+            var weekAssignments = recentAssignments.Where(a => a.AssignedAt >= weekStart && a.AssignedAt < weekEnd).ToList();
+            var weekCompleted = weekAssignments.Count(a => a.IsCompleted);
+            return new {
+                WeekLabel = $"{weekIndex + 1}. Hafta",
+                Completed = weekCompleted,
+                Assigned = weekAssignments.Count,
+                CompletionRate = weekAssignments.Count > 0 ? Math.Round((double)weekCompleted / weekAssignments.Count * 100, 1) : 0
+            };
+        }).Reverse().ToList();
+
+        return Ok(new {
+            userId = targetUserId,
+            dailyData,
+            summary = new {
+                totalAssigned,
+                totalCompleted,
+                totalMissed = Math.Max(0, totalMissed),
+                completionRate,
+                last30Days = new {
+                    completed = totalCompleted,
+                    missed = Math.Max(0, totalMissed)
+                }
+            },
+            weeklyData
+        });
+    }
+
     [HttpGet("debug/assignments")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAllAssignments()
@@ -353,6 +451,66 @@ public class FormController : ControllerBase
             submissionsByDate,
             formStatusBreakdown,
             userPerformance
+        });
+    }
+
+    [HttpGet("admin-summary")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAdminSummary()
+    {
+        var now = DateTime.UtcNow;
+        var thirtyDaysAgo = now.AddDays(-30).Date;
+
+        var allUsers = await _db.Users
+            .Where(u => u.Username != "admin")
+            .ToListAsync();
+
+        var userStats = new List<object>();
+        foreach (var user in allUsers)
+        {
+            var userAssignments = await _db.FormAssignments
+                .Where(fa => fa.UserId == user.Id)
+                .ToListAsync();
+
+            var recentAssignments = userAssignments.Where(a => a.AssignedAt >= thirtyDaysAgo).ToList();
+            var totalAssigned = userAssignments.Count;
+            var totalCompleted = userAssignments.Count(a => a.IsCompleted);
+            var recentCompleted = recentAssignments.Count(a => a.IsCompleted);
+            var recentMissed = recentAssignments.Count(a => !a.IsCompleted && a.FormTemplate.EndDate != null && a.FormTemplate.EndDate < now);
+
+            userStats.Add(new
+            {
+                userId = user.Id,
+                username = user.Username,
+                fullName = user.Username,
+                totalAssigned,
+                totalCompleted,
+                completionRate = totalAssigned > 0 ? Math.Round((double)totalCompleted / totalAssigned * 100, 1) : 0,
+                recentAssigned = recentAssignments.Count,
+                recentCompleted,
+                recentMissed,
+                recentCompletionRate = recentAssignments.Count > 0 
+                    ? Math.Round((double)recentCompleted / recentAssignments.Count * 100, 1) 
+                    : 0
+            });
+        }
+
+        var systemStats = new
+        {
+            totalUsers = allUsers.Count,
+            totalForms = await _db.FormTemplates.CountAsync(),
+            totalAssignments = await _db.FormAssignments.CountAsync(),
+            totalSubmissions = await _db.Submissions.CountAsync(),
+            activeForms = await _db.FormTemplates.CountAsync(t => (t.StartDate == null || t.StartDate <= now) && (t.EndDate == null || t.EndDate >= now)),
+            overallCompletionRate = await _db.FormAssignments.CountAsync() > 0 
+                ? Math.Round((double)await _db.FormAssignments.CountAsync(a => a.IsCompleted) / await _db.FormAssignments.CountAsync() * 100, 1)
+                : 0
+        };
+
+        return Ok(new
+        {
+            systemStats,
+            userStats
         });
     }
 

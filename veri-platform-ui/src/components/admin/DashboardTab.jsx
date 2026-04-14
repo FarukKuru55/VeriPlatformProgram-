@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AreaChart, Area,
   BarChart, Bar,
@@ -20,12 +20,121 @@ import {
   IconCalendar,
   IconChartPie,
   IconChartBar,
+  IconEye,
+  IconX,
 } from '@tabler/icons-react';
 
-const pct = (done, total) =>
-  !total || total === 0 ? 0 : Math.round((done / total) * 100);
-
+// User Analytics Modal for Drill-Down
 const COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+const UserAnalyticsModal = ({ userId, username, onClose }) => {
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserAnalytics = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`http://localhost:5062/api/Form/user-analytics/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setAnalytics(res.data);
+      } catch { toast.error('Kullanıcı verileri çekilemedi.'); }
+      finally { setLoading(false); }
+    };
+    fetchUserAnalytics();
+  }, [userId]);
+
+  if (loading) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center' }}>
+        <div style={{ color: 'var(--text-3)' }}>Veriler yükleniyor...</div>
+      </div>
+    );
+  }
+
+  const { summary, dailyData } = analytics || { summary: {}, dailyData: [] };
+
+  const getStatus = (day) => {
+    if (!day) return 'empty';
+    if (day.Assigned === 0) return 'empty';
+    if (day.Completed > 0 && day.Missed === 0) return 'completed';
+    if (day.Missed > 0) return 'missed';
+    if (day.Pending > 0) return 'pending';
+    return 'empty';
+  };
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-1)' }}>{username}</div>
+          <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Performans Detayı</div>
+        </div>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)' }}>
+          <IconX size={20} />
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+        <div style={{ background: 'var(--surface-2)', padding: 16, borderRadius: 12, textAlign: 'center' }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#10b981' }}>{summary.totalCompleted ?? 0}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase' }}>Tamamlandı</div>
+        </div>
+        <div style={{ background: 'var(--surface-2)', padding: 16, borderRadius: 12, textAlign: 'center' }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#f59e0b' }}>{summary.totalAssigned - summary.totalCompleted ?? 0}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase' }}>Bekliyor</div>
+        </div>
+        <div style={{ background: 'var(--surface-2)', padding: 16, borderRadius: 12, textAlign: 'center' }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#ef4444' }}>{(summary.totalMissed !== undefined) ? summary.totalMissed : 0}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase' }}>Kaçırıldı</div>
+        </div>
+        <div style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(6,182,212,0.15))', padding: 16, borderRadius: 12, textAlign: 'center', border: '1px solid rgba(16,185,129,0.2)' }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#10b981' }}>{(summary.completionRate !== undefined) ? `%${summary.completionRate}` : '%0'}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase' }}>Başarı</div>
+        </div>
+      </div>
+
+      <div style={{ background: 'var(--surface-2)', borderRadius: 12, padding: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 12 }}>Son 30 Gün</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 6 }}>
+          {dailyData.slice(-30).map((day, i) => {
+            const status = getStatus(day);
+            const date = new Date(day?.Date);
+            return (
+              <div
+                key={i}
+                title={day ? `${day.Date}: ${day.Completed}/${day.Assigned}` : 'Veri yok'}
+                style={{
+                  aspectRatio: '1',
+                  borderRadius: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: status === 'completed' ? 'linear-gradient(135deg, #10b981, #059669)' 
+                    : status === 'missed' ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                    : status === 'pending' ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                    : 'var(--surface)',
+                  color: status === 'empty' ? 'var(--text-4)' : 'white',
+                }}
+              >
+                {date.getDate()}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 11, justifyContent: 'center' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#10b981' }}></span> Tamamlandı</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#f59e0b' }}></span> Bekliyor</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#ef4444' }}></span> Kaçırıldı</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -134,6 +243,25 @@ const ExportButton = () => {
 };
 
 export default function DashboardTab({ dashboardStats, api }) {
+  const [adminSummary, setAdminSummary] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+
+  useEffect(() => {
+    const fetchAdminSummary = async () => {
+      setLoadingUsers(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('http://localhost:5062/api/Form/admin-summary', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setAdminSummary(res.data);
+      } catch { /* ignore */ }
+      finally { setLoadingUsers(false); }
+    };
+    fetchAdminSummary();
+  }, []);
+
   if (!dashboardStats) {
     return (
       <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-3)' }}>
@@ -156,8 +284,9 @@ export default function DashboardTab({ dashboardStats, api }) {
     dailySubmissions,
     topForms,
     submissionsByStatus,
-    userPerformance,
   } = dashboardStats;
+
+  const { userStats = [] } = adminSummary || {};
 
   const statCards = [
     {
@@ -366,19 +495,32 @@ export default function DashboardTab({ dashboardStats, api }) {
           </div>
           <div className="chart-card-subtitle">Görev tamamlama oranları</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
-            {userPerformance?.length > 0 ? (
-              userPerformance.map((user, i) => {
-                const p = pct(user.Done, user.Total);
+            {loadingUsers ? (
+              <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: '20px 0', fontSize: 13 }}>
+                Personel verileri yükleniyor...
+              </div>
+            ) : userStats.length > 0 ? (
+              userStats.map((user, i) => {
+                const p = user.completionRate || 0;
                 return (
-                  <div key={i}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13 }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-1)' }}>{user.Username}</span>
+                  <div 
+                    key={i} 
+                    onClick={() => setSelectedUser({ userId: user.userId, username: user.username })}
+                    style={{ cursor: 'pointer', padding: '10px 12px', borderRadius: 10, transition: 'all 0.2s', border: '1px solid transparent' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 13 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontWeight: 700, color: 'var(--text-1)' }}>{user.username}</span>
+                        <IconEye size={12} style={{ color: 'var(--text-4)' }} />
+                      </div>
                       <span style={{ color: 'var(--text-2)', fontFamily: "'DM Mono', monospace" }}>
-                        {user.Done}/{user.Total} <strong style={{ color: p >= 80 ? '#10b981' : p <= 30 ? '#ef4444' : '#6366f1' }}>%{p}</strong>
+                        {user.totalCompleted}/{user.totalAssigned} <strong style={{ color: p >= 80 ? '#10b981' : p <= 30 ? '#ef4444' : '#6366f1' }}>%{p}</strong>
                       </span>
                     </div>
-                    <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${p}%`, background: p >= 80 ? '#10b981' : p <= 30 ? '#ef4444' : '#6366f1', borderRadius: 'var(--radius-full)', transition: 'width 0.8s ease-in-out' }} />
+                    <div style={{ height: 8, background: 'var(--bg-3)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${p}%`, background: p >= 80 ? 'linear-gradient(90deg, #10b981, #059669)' : p <= 30 ? 'linear-gradient(90deg, #ef4444, #dc2626)' : 'linear-gradient(90deg, #6366f1, #8b5cf6)', borderRadius: 'var(--radius-full)', transition: 'width 0.8s ease-in-out' }} />
                     </div>
                   </div>
                 );
@@ -408,6 +550,25 @@ export default function DashboardTab({ dashboardStats, api }) {
               <Bar dataKey="Basvuru" fill="#6366f1" radius={[0, 6, 6, 0]} barSize={24} />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+      )}
+
+      {selectedUser && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000
+        }} onClick={() => setSelectedUser(null)}>
+          <div style={{
+            background: 'var(--surface)', borderRadius: 16, width: '90%', maxWidth: 600,
+            maxHeight: '80vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.4)'
+          }} onClick={(e) => e.stopPropagation()}>
+            <UserAnalyticsModal 
+              userId={selectedUser.userId} 
+              username={selectedUser.username} 
+              onClose={() => setSelectedUser(null)} 
+            />
+          </div>
         </div>
       )}
     </div>

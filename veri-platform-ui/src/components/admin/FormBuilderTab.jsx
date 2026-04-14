@@ -4,7 +4,7 @@ import { DndContext, closestCenter } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableItem from '../SortableItem';
 import { FaPlus, FaTextWidth, FaHashtag, FaCalendarAlt, FaDotCircle, FaCheckSquare, FaImage, FaFileAlt, FaTrashAlt, FaEdit, FaGripVertical, FaAsterisk, FaQuestion } from 'react-icons/fa';
-import { IconPhoto, IconFile } from '@tabler/icons-react';
+import { IconPhoto, IconFile, IconCurrencyLira } from '@tabler/icons-react';
 
 export default function FormBuilderTab({
   selectedForm,
@@ -123,6 +123,7 @@ export default function FormBuilderTab({
     text: <FaTextWidth size={15} />,
     number: <FaHashtag size={15} />,
     date: <FaCalendarAlt size={15} />,
+    currency: <IconCurrencyLira size={15} />,
     radio: <FaDotCircle size={15} />,
     checkbox: <FaCheckSquare size={15} />,
     image: <IconPhoto size={15} />,
@@ -133,6 +134,7 @@ export default function FormBuilderTab({
     text: 'Kısa Yanıt',
     number: 'Sayısal Yanıt',
     date: 'Tarih Seçimi',
+    currency: 'Para Birimi',
     radio: 'Tek Seçim',
     checkbox: 'Çoklu Seçim',
     image: 'Görsel Yükleme',
@@ -143,7 +145,8 @@ export default function FormBuilderTab({
     text: { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },
     number: { color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },
     date: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
-    radio: { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
+    currency: { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
+    radio: { color: '#14b8a6', bg: 'rgba(20, 184, 166, 0.1)' },
     checkbox: { color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)' },
     image: { color: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)' },
     file: { color: '#6366f1', bg: 'rgba(99, 102, 241, 0.1)' },

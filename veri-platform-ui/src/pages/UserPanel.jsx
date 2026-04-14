@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { jwtDecode } from 'jwt-decode';
-import { FaInbox, FaClipboard, FaFileAlt, FaCheckCircle } from 'react-icons/fa';
+import { FaInbox, FaClipboard, FaFileAlt, FaCheckCircle, FaChartBar, FaTasks, FaCalendarAlt, FaCheck, FaTimes } from 'react-icons/fa';
 import './userpanel.css';
 
 axios.interceptors.request.use((config) => {
@@ -22,17 +22,127 @@ axios.interceptors.response.use(
   }
 );
 
-/* ─── İkonlar ─── */
 const BackIcon   = () => <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>;
 const ArrowIcon  = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>;
 const SendIcon   = () => <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2 15 22l-4-9-9-4z"/></svg>;
 const AdminIcon  = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
 const LogoutIcon = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>;
 const CheckIcon  = () => <svg width="10" height="10" fill="none" stroke="white" strokeWidth="3" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>;
+const LiraIcon   = () => <span style={{ fontSize: '14px', fontWeight: 700 }}>₺</span>;
 
-/* ──────────────────────────────────────
-   GÖREV LİSTESİ
-────────────────────────────────────── */
+const ActivityCalendar = ({ dailyData }) => {
+  if (!dailyData || dailyData.length === 0) {
+    return (
+      <div className="calendar-empty">
+        <FaCalendarAlt size={24} />
+        <span>Henüz veri bulunmuyor</span>
+      </div>
+    );
+  }
+  
+  const getStatus = (day) => {
+    if (!day) return 'empty';
+    if (day.Assigned === 0) return 'empty';
+    if (day.Completed > 0 && day.Missed === 0) return 'completed';
+    if (day.Missed > 0) return 'missed';
+    if (day.Pending > 0) return 'pending';
+    return 'empty';
+  };
+
+  const getDayNumber = (dateStr) => {
+    if (!dateStr) return '?';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '?';
+    return date.getDate();
+  };
+
+  return (
+    <div className="activity-calendar">
+      <div className="calendar-header">
+        <span>Son 30 Gün</span>
+        <div className="calendar-legend">
+          <span className="legend-item"><span className="legend-dot completed" />Dolduruldu</span>
+          <span className="legend-item"><span className="legend-dot missed" />Kaçırıldı</span>
+          <span className="legend-item"><span className="legend-dot pending" />Bekliyor</span>
+        </div>
+      </div>
+      <div className="calendar-grid">
+        {dailyData.slice(-30).map((day, i) => {
+          const status = getStatus(day);
+          return (
+            <div 
+              key={i} 
+              className={`calendar-day ${status}`}
+              title={day ? `${day.Date}: ${day.Completed || 0}/${day.Assigned || 0} form` : 'Veri yok'}
+            >
+              <span className="day-number">{getDayNumber(day?.Date)}</span>
+              <span className="day-status">
+                {status === 'completed' && <FaCheck size={10} />}
+                {status === 'missed' && <FaTimes size={10} />}
+                {status === 'pending' && <span className="pending-dot" />}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const Dashboard = ({ analytics }) => {
+  const { summary, dailyData } = analytics || { 
+    summary: { 
+      totalCompleted: 0, 
+      totalPending: 0, 
+      totalMissed: 0, 
+      completionRate: 0 
+    }, 
+    dailyData: [] 
+  };
+
+  return (
+    <div className="dashboard-container">
+      <div className="dashboard-header">
+        <FaChartBar size={18} />
+        <span>Performansım</span>
+      </div>
+      
+      <div className="dashboard-stats">
+        <div className="stat-card">
+          <div className="stat-icon completed"><FaCheck /></div>
+          <div className="stat-info">
+            <span className="stat-value">{summary.totalCompleted ?? 0}</span>
+            <span className="stat-label">Tamamlandı</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon pending"><FaTasks /></div>
+          <div className="stat-info">
+            <span className="stat-value">{summary.totalPending ?? 0}</span>
+            <span className="stat-label">Bekliyor</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon missed"><FaTimes /></div>
+          <div className="stat-info">
+            <span className="stat-value">{summary.totalMissed ?? 0}</span>
+            <span className="stat-label">Kaçırıldı</span>
+          </div>
+        </div>
+        <div className="stat-card highlight">
+          <div className="stat-icon rate"><FaChartBar /></div>
+          <div className="stat-info">
+            <span className="stat-value">%{summary.completionRate ?? 0}</span>
+            <span className="stat-label">Başarı Oranı</span>
+          </div>
+        </div>
+      </div>
+
+      <ActivityCalendar dailyData={dailyData} />
+    </div>
+  );
+};
+
 const UserTasks = ({ tasks, handleSelectForm }) => {
   const getDeadlineStatus = (endDate) => {
     if (!endDate) return { label: 'Süresiz', cls: 'neutral' };
@@ -73,32 +183,28 @@ const UserTasks = ({ tasks, handleSelectForm }) => {
   );
 };
 
-/* ──────────────────────────────────────
-   ANA COMPONENT
-────────────────────────────────────── */
 export default function UserPanel() {
   const [tasks, setTasks]                         = useState([]);
+  const [analytics, setAnalytics]                 = useState(null);
+  const [showDashboard, setShowDashboard]        = useState(true);
   const [selectedFormId, setSelectedFormId]       = useState(null);
   const [selectedFormTitle, setSelectedFormTitle] = useState('');
   const [questions, setQuestions]                 = useState([]);
   const [answers, setAnswers]                     = useState({});
   const [isAdmin, setIsAdmin]                     = useState(false);
 
-  const checkIfAdmin = useCallback(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    try {
-      const decoded = jwtDecode(token);
-      const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded.role;
-      if (role === 'Admin' || (Array.isArray(role) && role.includes('Admin'))) setIsAdmin(true);
-    } catch { /* silent */ }
-  }, []);
-
   const fetchMyTasks = useCallback(async () => {
     try {
       const res = await axios.get('http://localhost:5062/api/Form/my-tasks');
       setTasks(res.data);
-    } catch { toast.error('Görev listeniz yüklenemedi.'); }
+    } catch { /* ignore */ }
+  }, []);
+
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      const res = await axios.get('http://localhost:5062/api/Form/user-analytics');
+      setAnalytics(res.data);
+    } catch { /* ignore */ }
   }, []);
 
   const fetchQuestions = useCallback(async (formId) => {
@@ -111,12 +217,14 @@ export default function UserPanel() {
   const handleSelectForm = (task) => {
     setSelectedFormId(task.formTemplateId);
     setSelectedFormTitle(task.title);
+    setShowDashboard(false);
     fetchQuestions(task.formTemplateId);
     window.history.pushState({}, '', `/user?formId=${task.formTemplateId}`);
   };
 
   const handleBack = () => {
     setSelectedFormId(null); setQuestions([]); setAnswers({});
+    setShowDashboard(true);
     window.history.pushState({}, '', '/user');
     fetchMyTasks();
   };
@@ -161,18 +269,39 @@ export default function UserPanel() {
       );
       toast.success('Yanıtlarınız başarıyla kaydedildi!');
       setAnswers({});
-      setTimeout(handleBack, 1500);
+      setTimeout(() => {
+        handleBack();
+        fetchAnalytics();
+      }, 1500);
     } catch { toast.error('Gönderim sırasında bir hata oluştu.'); }
   };
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    checkIfAdmin();
+    const init = () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const decoded = jwtDecode(token);
+          const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded.role;
+          if (role === 'Admin' || (Array.isArray(role) && role.includes('Admin'))) setIsAdmin(true);
+        } catch { /* ignore */ }
+      }
+    };
+    init();
+
     const params = new URLSearchParams(window.location.search);
     const formId = params.get('formId');
-    if (formId) { fetchQuestions(formId); setSelectedFormId(formId); }
-    else fetchMyTasks();
-  }, [checkIfAdmin, fetchMyTasks, fetchQuestions]);
+    if (formId) { 
+      fetchQuestions(formId); 
+      setSelectedFormId(formId);
+      setShowDashboard(false);
+    } else {
+      fetchMyTasks();
+    }
+    fetchAnalytics();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+  }, []);
 
   const answeredCount = useMemo(() => {
     return questions.filter(q => {
@@ -229,6 +358,23 @@ export default function UserPanel() {
           </div>
         );
 
+      case 'currency':
+        return (
+          <div className="currency-input-wrapper">
+            <span className="currency-prefix"><LiraIcon /></span>
+            <input className="q-input currency"
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={answers[q.id] || ''}
+              onChange={e => {
+                const val = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+                handleAnswerChange(q.id, val);
+              }}
+            />
+          </div>
+        );
+
       case 'file':
       case 'image':
         return (
@@ -271,11 +417,8 @@ export default function UserPanel() {
     ? Math.round((answeredCount / questions.length) * 100)
     : 0;
 
-  /* ─────────── RENDER ─────────── */
   return (
     <div className="up-root">
-
-      {/* TOPBAR */}
       <div className="up-topbar">
         <div className="topbar-brand">
           <div className="topbar-logo">VP</div>
@@ -295,28 +438,44 @@ export default function UserPanel() {
         </div>
       </div>
 
-      {/* CONTAINER */}
       <div className="up-container">
-
-        {/* GÖREV LİSTESİ */}
         {!selectedFormId && (
           <>
             <div className="up-page-header">
-              <div className="up-page-title">Görev Listem</div>
+              <div className="up-page-title">{showDashboard ? 'Dashboard' : 'Görev Listem'}</div>
               <div className="up-page-subtitle">
-                Size atanmış formları seçerek doldurun.
+                {showDashboard ? 'Son 30 günlük performansınızı takip edin.' : 'Size atanmış formları seçerek doldurun.'}
               </div>
             </div>
-            <UserTasks tasks={tasks} handleSelectForm={handleSelectForm} />
+
+            <div className="view-toggle">
+              <button 
+                className={`toggle-btn ${showDashboard ? 'active' : ''}`}
+                onClick={() => setShowDashboard(true)}
+              >
+                <FaChartBar /> Dashboard
+              </button>
+              <button 
+                className={`toggle-btn ${!showDashboard ? 'active' : ''}`}
+                onClick={() => { setShowDashboard(false); fetchMyTasks(); }}
+              >
+                <FaTasks /> Formlarım
+              </button>
+            </div>
+
+            {showDashboard ? (
+              <Dashboard analytics={analytics} />
+            ) : (
+              <UserTasks tasks={tasks} handleSelectForm={handleSelectForm} />
+            )}
           </>
         )}
 
-        {/* FORM DOLDURMA */}
         {selectedFormId && (
           <div className="form-animation-fade">
             <div className="form-fill-header">
               <div className="back-link" onClick={handleBack}>
-                <BackIcon /> Görev Listesine Dön
+                <BackIcon /> Dashboard'a Dön
               </div>
               <div className="form-fill-title">{selectedFormTitle}</div>
               <div className="progress-container">
@@ -369,7 +528,6 @@ export default function UserPanel() {
             )}
           </div>
         )}
-
       </div>
     </div>
   );

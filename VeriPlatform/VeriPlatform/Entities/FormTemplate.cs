@@ -1,4 +1,4 @@
-﻿namespace VeriPlatform.Entities;
+namespace VeriPlatform.Entities;
 
 public class FormTemplate
 {
@@ -7,13 +7,11 @@ public class FormTemplate
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public DateTime? StartDate { get; set; }
-    public DateTime? EndDate { get; set; }
-    public bool IsRecurring { get; set; } = false;
-    public string? RecurrenceType { get; set; }
+    public PeriodType PeriodType { get; set; } = PeriodType.Daily;
 
     public string? ShareSlug { get; set; }
 
     public List<Question> Questions { get; set; } = new();
     public List<Submission> Submissions { get; set; } = new();
+    public List<FormAssignment> FormAssignments { get; set; } = new();
 }

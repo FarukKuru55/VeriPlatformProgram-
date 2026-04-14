@@ -8,7 +8,7 @@ public class Question
 
     public string Label { get; set; } = null!;
 
-    // "text" | "number" | "date" | "money" | "radio" | "checkbox" | "image" | "file"
+    // "text" | "number" | "date" | "money" | "currency" | "radio" | "checkbox" | "image" | "file"
     public string Type { get; set; } = null!;
     public int Order { get; set; }
 
