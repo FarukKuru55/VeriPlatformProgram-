@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { jwtDecode } from 'jwt-decode';
-import { FaInbox, FaClipboard, FaFileAlt, FaCheckCircle, FaChartBar, FaTasks, FaCalendarAlt, FaCheck, FaTimes } from 'react-icons/fa';
+import { Shield, LogOut, LayoutDashboard, ClipboardList } from 'lucide-react';
+import DashboardView from '../components/user/DashboardView';
+import FormsListView from '../components/user/FormsListView';
+import FormFillView from '../components/user/FormFillView';
 import './userpanel.css';
 
 axios.interceptors.request.use((config) => {
@@ -22,220 +25,16 @@ axios.interceptors.response.use(
   }
 );
 
-const BackIcon   = () => <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>;
-const ArrowIcon  = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>;
-const SendIcon   = () => <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2 15 22l-4-9-9-4z"/></svg>;
-const AdminIcon  = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
-const LogoutIcon = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>;
-const CheckIcon  = () => <svg width="10" height="10" fill="none" stroke="white" strokeWidth="3" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>;
-const LiraIcon   = () => <span style={{ fontSize: '14px', fontWeight: 700 }}>₺</span>;
-
-const ActivityCalendar = ({ dailyData }) => {
-  if (!dailyData || dailyData.length === 0) {
-    return (
-      <div className="calendar-empty">
-        <FaCalendarAlt size={24} />
-        <span>Henüz veri bulunmuyor</span>
-      </div>
-    );
-  }
-  
-  const getStatus = (day) => {
-    if (!day) return 'empty';
-    if (day.Assigned === 0) return 'empty';
-    if (day.Completed > 0 && day.Missed === 0) return 'completed';
-    if (day.Missed > 0) return 'missed';
-    if (day.Pending > 0) return 'pending';
-    return 'empty';
-  };
-
-  const getDayNumber = (dateStr) => {
-    if (!dateStr) return '?';
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return '?';
-    return date.getDate();
-  };
-
-  return (
-    <div className="activity-calendar">
-      <div className="calendar-header">
-        <span>Son 30 Gün</span>
-        <div className="calendar-legend">
-          <span className="legend-item"><span className="legend-dot completed" />Dolduruldu</span>
-          <span className="legend-item"><span className="legend-dot missed" />Kaçırıldı</span>
-          <span className="legend-item"><span className="legend-dot pending" />Bekliyor</span>
-        </div>
-      </div>
-      <div className="calendar-grid">
-        {dailyData.slice(-30).map((day, i) => {
-          const status = getStatus(day);
-          return (
-            <div 
-              key={i} 
-              className={`calendar-day ${status}`}
-              title={day ? `${day.Date}: ${day.Completed || 0}/${day.Assigned || 0} form` : 'Veri yok'}
-            >
-              <span className="day-number">{getDayNumber(day?.Date)}</span>
-              <span className="day-status">
-                {status === 'completed' && <FaCheck size={10} />}
-                {status === 'missed' && <FaTimes size={10} />}
-                {status === 'pending' && <span className="pending-dot" />}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-const Dashboard = ({ analytics, tasks, handleSelectForm }) => {
-  const [activeTab, setActiveTab] = useState('GUNLUK');
-  const [subFilter, setSubFilter] = useState(1);
-
-  const { summary, dailyData } = analytics || { 
-    summary: { totalCompleted: 0, totalPending: 0, totalMissed: 0, completionRate: 0 }, 
-    dailyData: [] 
-  };
-
-  const weeks = ['1. Hafta', '2. Hafta', '3. Hafta', '4. Hafta'];
-  const months = ['Ocak', 'Subat', 'Mart', 'Nisan', 'Mayis', 'Haziran', 'Temmuz', 'Agustos', 'Eylul', 'Ekim', 'Kasim', 'Aralik'];
-
-  const getDeadlineStatus = (endDate) => {
-    if (!endDate) return { label: 'Suresiz', cls: 'neutral' };
-    const diff = Math.ceil((new Date(endDate) - new Date()) / 86400000);
-    if (diff < 0) return { label: 'Suresi Doldu', cls: 'urgent' };
-    if (diff <= 3) return { label: diff + ' gun kaldi', cls: 'urgent' };
-    return { label: new Date(endDate).toLocaleDateString('tr-TR'), cls: 'normal' };
-  };
-
-  const renderTaskCard = (task) => (
-    <div key={task.id} className="tab-task-card" onClick={() => handleSelectForm(task, true)}>
-      <div className="tab-task-icon"><FaClipboard /></div>
-      <div className="tab-task-content">
-        <div className="tab-task-title">{task.title}</div>
-        <div className="tab-task-date">
-          <span className={'task-deadline-badge ' + getDeadlineStatus(task.endDate).cls}>
-            {getDeadlineStatus(task.endDate).label}
-          </span>
-        </div>
-      </div>
-      <div className="tab-task-arrow"><ArrowIcon /></div>
-    </div>
-  );
-
-  const filteredTasks = tasks.filter(t => {
-    if (activeTab === 'GUNLUK') return t.periodType === 1 || !t.periodType;
-    if (activeTab === 'HAFTALIK') return t.periodType === 2;
-    if (activeTab === 'AYLIK') return t.periodType === 3;
-    return false;
-  });
-
-  return (
-    <div className="dashboard-container">
-      <div className="dashboard-stats">
-        <div className="stat-card">
-          <div className="stat-icon completed"><FaCheck /></div>
-          <div className="stat-info"><span className="stat-value">{summary.totalCompleted ?? 0}</span><span className="stat-label">Tamamlandi</span></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon pending"><FaTasks /></div>
-          <div className="stat-info"><span className="stat-value">{summary.totalPending ?? 0}</span><span className="stat-label">Bekliyor</span></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon missed"><FaTimes /></div>
-          <div className="stat-info"><span className="stat-value">{summary.totalMissed ?? 0}</span><span className="stat-label">Kacirildi</span></div>
-        </div>
-        <div className="stat-card highlight">
-          <div className="stat-icon rate"><FaChartBar /></div>
-          <div className="stat-info"><span className="stat-value">%{summary.completionRate ?? 0}</span><span className="stat-label">Basari Orani</span></div>
-        </div>
-      </div>
-
-      <div className="dashboard-tabs">
-        <button className={'tab-btn ' + (activeTab === 'GUNLUK' ? 'active' : '')} onClick={() => setActiveTab('GUNLUK')}>GUNLUK</button>
-        <button className={'tab-btn ' + (activeTab === 'HAFTALIK' ? 'active' : '')} onClick={() => setActiveTab('HAFTALIK')}>HAFTALIK</button>
-        <button className={'tab-btn ' + (activeTab === 'AYLIK' ? 'active' : '')} onClick={() => setActiveTab('AYLIK')}>AYLIK</button>
-      </div>
-
-      {activeTab === 'HAFTALIK' && (
-        <div className="sub-filters">
-          {weeks.map((w, i) => (
-            <button key={i} className={'sub-filter-btn ' + (subFilter === i + 1 ? 'active' : '')} onClick={() => setSubFilter(i + 1)}>{w}</button>
-          ))}
-        </div>
-      )}
-
-      {activeTab === 'AYLIK' && (
-        <div className="sub-filters">
-          {months.map((m, i) => (
-            <button key={i} className={'sub-filter-btn ' + (subFilter === i + 1 ? 'active' : '')} onClick={() => setSubFilter(i + 1)}>{m}</button>
-          ))}
-        </div>
-      )}
-
-      <div className="tab-task-list">
-        {filteredTasks.length > 0 ? filteredTasks.map(renderTaskCard) : (
-          <div className="no-tasks"><FaInbox className="no-tasks-icon" /><div className="no-tasks-title">Gorev yok</div></div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const UserTasks = ({ tasks, handleSelectForm }) => {
-  const getDeadlineStatus = (endDate) => {
-    if (!endDate) return { label: 'Suresiz', cls: 'neutral' };
-    const diff = Math.ceil((new Date(endDate) - new Date()) / 86400000);
-    if (diff < 0) return { label: 'Suresi Doldu', cls: 'urgent' };
-    if (diff <= 3) return { label: diff + ' gun kaldi', cls: 'urgent' };
-    return { label: new Date(endDate).toLocaleDateString('tr-TR'), cls: 'normal' };
-  };
-
-  // Only show NOT completed tasks (active/work to do)
-  const activeTasks = tasks.filter(t => t.status !== 'completed');
-
-  if (activeTasks.length === 0) {
-    return (
-      <div className="no-tasks">
-        <FaInbox className="no-tasks-icon" />
-        <div className="no-tasks-title">Aktif gorefiniz bulunmuyor</div>
-        <div className="no-tasks-desc">Tum formlari tamamladiniz!</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="tasks-grid">
-      {activeTasks.map(task => {
-        const dl = getDeadlineStatus(task.endDate);
-        return (
-          <div key={task.id} className="task-card" onClick={() => handleSelectForm(task)}>
-            <div className="task-icon"><FaClipboard /></div>
-            <div className="task-content">
-              <div className="task-title">{task.title}</div>
-              <div className="task-date">
-                <span className={`task-deadline-badge ${dl.cls}`}>{dl.label}</span>
-              </div>
-            </div>
-            <div className="task-arrow"><ArrowIcon /></div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
 export default function UserPanel() {
-  const [tasks, setTasks]                         = useState([]);
-  const [analytics, setAnalytics]                 = useState(null);
-  const [showDashboard, setShowDashboard]        = useState(true);
-  const [selectedFormId, setSelectedFormId]       = useState(null);
+  const [tasks, setTasks] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
+  const [activeView, setActiveView] = useState('dashboard');
+  const [selectedFormId, setSelectedFormId] = useState(null);
   const [selectedFormTitle, setSelectedFormTitle] = useState('');
-  const [questions, setQuestions]                 = useState([]);
-  const [answers, setAnswers]                     = useState({});
-  const [isAdmin, setIsAdmin]                     = useState(false);
-  const [isReadOnly, setIsReadOnly]                 = useState(false);
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState({});
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isReadOnly, setIsReadOnly] = useState(false);
 
   const fetchMyTasks = useCallback(async () => {
     try {
@@ -258,21 +57,22 @@ export default function UserPanel() {
     } catch { toast.error('Sorular yüklenemedi.'); }
   }, []);
 
-  const handleSelectForm = (task, isFromArchive = false) => {
+  const handleSelectForm = (task, readOnly = false) => {
     setSelectedFormId(task.formTemplateId);
     setSelectedFormTitle(task.title);
-    setShowDashboard(false);
-    setIsReadOnly(isFromArchive || task.status === 'completed');
+    setIsReadOnly(readOnly || task.status === 'completed' || task.isCompleted);
     fetchQuestions(task.formTemplateId);
     window.history.pushState({}, '', `/user?formId=${task.formTemplateId}`);
   };
 
   const handleBack = () => {
-    setSelectedFormId(null); setQuestions([]); setAnswers({});
+    setSelectedFormId(null);
+    setQuestions([]);
+    setAnswers({});
     setIsReadOnly(false);
-    setShowDashboard(true);
     window.history.pushState({}, '', '/user');
     fetchMyTasks();
+    fetchAnalytics();
   };
 
   const handleAnswerChange = (questionId, value) => {
@@ -317,7 +117,6 @@ export default function UserPanel() {
       setAnswers({});
       setTimeout(() => {
         handleBack();
-        fetchAnalytics();
       }, 1500);
     } catch { toast.error('Gönderim sırasında bir hata oluştu.'); }
   };
@@ -338,133 +137,33 @@ export default function UserPanel() {
 
     const params = new URLSearchParams(window.location.search);
     const formId = params.get('formId');
-    if (formId) { 
-      fetchQuestions(formId); 
+    if (formId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchQuestions(formId);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedFormId(formId);
-      setShowDashboard(false);
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchMyTasks();
     }
-    fetchAnalytics();
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchAnalytics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const answeredCount = useMemo(() => {
-    return questions.filter(q => {
-      const val = answers[q.id];
-      if (val === undefined || val === null || val === '') return false;
-      if (Array.isArray(val)) return val.length > 0;
-      return true;
-    }).length;
-  }, [answers, questions]);
+  const viewTitle = selectedFormId
+    ? selectedFormTitle
+    : activeView === 'dashboard'
+      ? 'Dashboard'
+      : 'Formlarım';
 
-  const renderInput = (q) => {
-    const options = q.optionsJson ? JSON.parse(q.optionsJson) : [];
-    const disabled = isReadOnly;
-
-    switch (q.type) {
-      case 'radio':
-        return (
-          <div className="options-container">
-            {options.map((opt, i) => (
-              <label key={i} className={`radio-option ${answers[q.id] === opt ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
-                <input type="radio" name={`q-${q.id}`} value={opt}
-                  checked={answers[q.id] === opt}
-                  onChange={e => handleAnswerChange(q.id, e.target.value)}
-                  style={{ display: 'none' }} disabled={disabled} />
-                <div className="custom-radio">
-                  {answers[q.id] === opt && <div className="radio-dot" />}
-                </div>
-                <span>{opt}</span>
-              </label>
-            ))}
-          </div>
-        );
-
-      case 'checkbox':
-        return (
-          <div className="options-container">
-            {options.map((opt, i) => {
-              const checked = (answers[q.id] || []).includes(opt);
-              return (
-                <label key={i} className={`checkbox-option ${checked ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
-                  <input type="checkbox" value={opt} checked={checked}
-                    onChange={e => {
-                      const cur = answers[q.id] || [];
-                      handleAnswerChange(q.id, e.target.checked
-                        ? [...cur, opt]
-                        : cur.filter(a => a !== opt));
-                    }} style={{ display: 'none' }} disabled={disabled} />
-                  <div className="custom-checkbox">
-                    {checked && <CheckIcon />}
-                  </div>
-                  <span>{opt}</span>
-                </label>
-              );
-            })}
-          </div>
-        );
-
-      case 'currency':
-        return (
-          <div className="currency-input-wrapper">
-            <span className="currency-prefix"><LiraIcon /></span>
-            <input className="q-input currency"
-              type="text"
-              inputMode="decimal"
-              placeholder="0,00"
-              value={answers[q.id] || ''}
-              onChange={e => {
-                const val = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
-                handleAnswerChange(q.id, val);
-              }}
-              disabled={disabled}
-            />
-          </div>
-        );
-
-      case 'file':
-      case 'image':
-        return (
-          <div className="file-upload-wrapper">
-            <label className={'file-upload-area ' + (disabled ? 'disabled' : '')}>
-              <input type="file" style={{ display: 'none' }}
-                onChange={e => handleFileUpload(q.id, e.target.files[0])} disabled={disabled} />
-              <div className="file-upload-icon"><FaFileAlt /></div>
-              <div className="file-upload-text">
-                {answers[q.id] ? 'Dosyayi Degistir' : 'Dosya secmek icin tiklayin'}
-              </div>
-              <div className="file-upload-hint">veya surukleyip birakin</div>
-            </label>
-            {answers[q.id] && (
-              <div className="file-success">
-                <FaCheckCircle style={{ marginRight: 4 }} /> Yuklendi —{' '}
-                <a href={answers[q.id]} target="_blank" rel="noreferrer">Goruntule</a>
-              </div>
-            )}
-          </div>
-        );
-
-      default:
-        return (
-          <input className="q-input"
-            type={q.type === 'money' ? 'number' : q.type}
-            placeholder={
-              q.type === 'number' ? '0'
-              : q.type === 'date' ? ''
-              : 'Cevabinizi buraya yazin...'
-            }
-            value={answers[q.id] || ''}
-            onChange={e => handleAnswerChange(q.id, e.target.value)}
-            disabled={disabled}
-          />
-        );
-    }
-  };
-
-  const progressPercent = questions.length > 0
-    ? Math.round((answeredCount / questions.length) * 100)
-    : 0;
+  const viewSubtitle = selectedFormId
+    ? isReadOnly
+      ? 'Bu formu salt okunur modunda görüntülüyorsunuz.'
+      : 'Size atanan formu doldurun.'
+    : activeView === 'dashboard'
+      ? 'Son 30 günlük performansınızı takip edin.'
+      : 'Size atanmış formları seçerek doldurun.';
 
   return (
     <div className="up-root">
@@ -475,115 +174,62 @@ export default function UserPanel() {
         </div>
         <div className="topbar-actions">
           {isAdmin && (
-            <button className="topbar-btn admin"
-              onClick={() => window.location.href = '/admin'}>
-              <AdminIcon /> Yönetim Paneli
+            <button className="topbar-btn admin" onClick={() => window.location.href = '/admin'}>
+              <Shield size={14} /> Yönetim Paneli
             </button>
           )}
           <button className="topbar-btn danger"
             onClick={() => { localStorage.removeItem('token'); window.location.href = '/'; }}>
-            <LogoutIcon /> Çıkış
+            <LogOut size={14} /> Çıkış
           </button>
         </div>
       </div>
 
       <div className="up-container">
+        <div className="up-page-header">
+          <div className="up-page-title">{viewTitle}</div>
+          <div className="up-page-subtitle">{viewSubtitle}</div>
+        </div>
+
         {!selectedFormId && (
-          <>
-            <div className="up-page-header">
-              <div className="up-page-title">{showDashboard ? 'Dashboard' : 'Görev Listem'}</div>
-              <div className="up-page-subtitle">
-                {showDashboard ? 'Son 30 günlük performansınızı takip edin.' : 'Size atanmış formları seçerek doldurun.'}
-              </div>
-            </div>
-
-            <div className="view-toggle">
-              <button 
-                className={`toggle-btn ${showDashboard ? 'active' : ''}`}
-                onClick={() => setShowDashboard(true)}
-              >
-                <FaChartBar /> Dashboard
-              </button>
-              <button 
-                className={`toggle-btn ${!showDashboard ? 'active' : ''}`}
-                onClick={() => { setShowDashboard(false); fetchMyTasks(); }}
-              >
-                <FaTasks /> Formlarım
-              </button>
-            </div>
-
-            {showDashboard ? (
-              <Dashboard analytics={analytics} tasks={tasks} handleSelectForm={handleSelectForm} />
-            ) : (
-              <UserTasks tasks={tasks} handleSelectForm={handleSelectForm} />
-            )}
-          </>
+          <div className="view-toggle">
+            <button
+              className={`toggle-btn ${activeView === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setActiveView('dashboard')}
+            >
+              <LayoutDashboard size={16} /> Dashboard
+            </button>
+            <button
+              className={`toggle-btn ${activeView === 'forms' ? 'active' : ''}`}
+              onClick={() => { setActiveView('forms'); fetchMyTasks(); }}
+            >
+              <ClipboardList size={16} /> Formlarım
+            </button>
+          </div>
         )}
 
-        {selectedFormId && (
-          <div className="form-animation-fade">
-            <div className="form-fill-header">
-              <div className="back-link" onClick={handleBack}>
-                <BackIcon /> Dashboard'a Dön
-              </div>
-              <div className="form-fill-title">{selectedFormTitle}</div>
-              <div className="progress-container">
-                <div className="progress-bar-wrap">
-                  <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }} />
-                </div>
-                <div className="progress-footer">
-                  <div className="progress-label">{answeredCount} / {questions.length} soru yanıtlandı</div>
-                  <div className="progress-pct">%{progressPercent}</div>
-                </div>
-              </div>
-            </div>
-
-            {questions.length === 0 ? (
-              <div className="no-tasks">
-                <div className="no-tasks-icon"><FaClipboard /></div>
-                <div className="no-tasks-title">Bu formda henüz soru yok</div>
-                <div className="no-tasks-desc">Yönetici soru ekledikten sonra burada görünecek.</div>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit}>
-                <div className="questions-list">
-                  {questions.map((q, index) => (
-                    <div key={q.id}
-                      className={`question-card ${q.isRequired ? 'required-card' : ''}`}>
-                      <div className="question-header">
-                        <span className="question-number">Soru {index + 1}</span>
-                        {q.isRequired && <span className="required-badge">Zorunlu</span>}
-                      </div>
-                      <div className="question-label">{q.label}</div>
-                      {q.imageUrl && (
-                        <div className="q-admin-image-container">
-                          <img src={q.imageUrl} alt="Soru görseli" className="q-admin-image" />
-                        </div>
-                      )}
-                      {renderInput(q)}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="form-submit-area">
-                  {isReadOnly ? (
-                    <div className="form-readonly-notice">
-                      <FaCheckCircle /> Bu formu arsiv modunda goruntuluyorsunuz, degisiklik yapilamaz.
-                    </div>
-                  ) : (
-                    <>
-                      <div className="submit-info">
-                        <strong>{answeredCount}</strong> / {questions.length} soru yanitlandi
-                      </div>
-                      <button type="submit" className="submit-btn">
-                        Formu Gonder <SendIcon />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </form>
-            )}
-          </div>
+        {selectedFormId ? (
+          <FormFillView
+            formTitle={selectedFormTitle}
+            questions={questions}
+            answers={answers}
+            isReadOnly={isReadOnly}
+            onAnswerChange={handleAnswerChange}
+            onFileUpload={handleFileUpload}
+            onSubmit={handleSubmit}
+            onBack={handleBack}
+          />
+        ) : activeView === 'dashboard' ? (
+          <DashboardView
+            analytics={analytics}
+            tasks={tasks}
+            onSelectForm={handleSelectForm}
+          />
+        ) : (
+          <FormsListView
+            tasks={tasks}
+            onSelectForm={handleSelectForm}
+          />
         )}
       </div>
     </div>
